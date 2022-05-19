@@ -8,7 +8,7 @@ export interface KeyPair<S extends Scalar, P extends Point<Scalar>> {
   pubkey: P;
 }
 
-export function new_keypair<
+export function newKeypair<
   S extends Scalar,
   P extends Point<S>,
   C extends Curve<S, P>

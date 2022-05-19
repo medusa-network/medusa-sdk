@@ -1,19 +1,5 @@
-import { Result } from "neverthrow";
-// from https://bobbyhadz.com/blog/typescript-extend-error-class
-export class EncodingError extends Error {
-  statusCode = 400;
-
-  constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, EncodingError.prototype);
-  }
-  getErrorMessage() {
-    return "encoding err: " + this.message;
-  }
-}
-
-export type EncodingRes<T> = Result<T, EncodingError>;
-
+import { BigNumber, BigNumberish } from "ethers";
+import { EncodingRes, EVMEncoding } from "./encoding";
 export interface Atom<RHS> {
   add(e: this): this;
   mul(r: RHS): this;
@@ -27,15 +13,20 @@ export interface Atom<RHS> {
   set(a: this): this;
 }
 
-export interface Scalar extends Atom<Scalar> {
+export interface Scalar extends Atom<Scalar>, EVMEncoding<BigNumber> {
   inverse(): this;
-  //from_evm(u: string): EncodingRes<this>;
-  //to_evm(): number;
 }
 
-export interface Point<S extends Scalar> extends Atom<S> {
+export interface Point<S extends Scalar>
+  extends Atom<S>,
+    EVMEncoding<EVMPoint> {
   map(m: string): this;
-  from_xy(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
+  fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
+}
+
+export interface EVMPoint {
+  x: BigNumber;
+  y: BigNumber;
 }
 
 // Unfortunately we can not have static methods on scalar
