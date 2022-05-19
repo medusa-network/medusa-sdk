@@ -1,7 +1,7 @@
 //import test from "ava";
 import assert from "assert";
 import { init, curve } from "../src/bn254";
-import { new_keypair } from "../src/index";
+import { newKeypair } from "../src/index";
 import { hexlify, arrayify } from "ethers/lib/utils";
 
 describe("testing bn254 wrapper", () => {
@@ -20,7 +20,7 @@ describe("testing bn254 wrapper", () => {
   });
 
   it("new keypair", () => {
-    const kp = new_keypair(curve);
+    const kp = newKeypair(curve);
   });
 
   it("serialization scalar", () => {
@@ -40,7 +40,7 @@ describe("testing bn254 wrapper", () => {
   });
 
   it("Compatibility with rust code", () => {
-    const json_obj = {
+    const jsonObj = {
       base: {
         compressed:
           "0x0100000000000000000000000000000000000000000000000000000000000000",
@@ -59,25 +59,25 @@ describe("testing bn254 wrapper", () => {
       },
     };
     // compatibility with base point in compressed form
-    let r = curve.point().deserialize(arrayify(json_obj.base.compressed));
+    let r = curve.point().deserialize(arrayify(jsonObj.base.compressed));
     assert.ok(r.isOk());
     assert.ok(r._unsafeUnwrap().equal(curve.point().one()));
     // compatibility with base point in affine form
-    const xbase = arrayify(json_obj.base.affine.x);
-    const ybase = arrayify(json_obj.base.affine.y);
-    r = curve.point().from_xy(xbase, ybase);
+    const xbase = arrayify(jsonObj.base.affine.x);
+    const ybase = arrayify(jsonObj.base.affine.y);
+    r = curve.point().fromXY(xbase, ybase);
     assert.ok(r.isOk());
     assert.ok(r._unsafeUnwrap().equal(curve.point().one()));
 
     // compatibility with random point in compressed form
-    r = curve.point().deserialize(arrayify(json_obj.p.compressed));
+    r = curve.point().deserialize(arrayify(jsonObj.p.compressed));
     assert.ok(r.isOk());
     const p1 = r._unsafeUnwrap();
     assert.ok(p1.p.isValid() && p1.p.isValidOrder());
     // compatibility with random point in affine form
-    const xp = arrayify(json_obj.p.affine.x);
-    const yp = arrayify(json_obj.p.affine.y);
-    r = curve.point().from_xy(xp, yp);
+    const xp = arrayify(jsonObj.p.affine.x);
+    const yp = arrayify(jsonObj.p.affine.y);
+    r = curve.point().fromXY(xp, yp);
     assert.ok(r.isOk());
     const p2 = r._unsafeUnwrap();
     assert.ok(p2.p.isValid() && p2.p.isValidOrder());

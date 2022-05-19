@@ -6,6 +6,9 @@
   "scripts": {
     "test": "npx hardhat test"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
