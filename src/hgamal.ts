@@ -80,8 +80,7 @@ export function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   // { rG, H(rP) ^ m } where P = pG public key recipient
   const fr = c.scalar().random();
   const r = c.point().one().mul(fr);
-  const shared = recipient.mul(fr);
-  console.log("SHARED:",shared);
+  const shared = c.point().set(recipient).mul(fr);
   const xorkey = hkdf(shared);
   const ciphertext = xor(xorkey, msg);
   const cipher = new Ciphertext(r, ciphertext);
@@ -103,10 +102,8 @@ export function decryptReencryption<
   // to decrypt, compute
   // p(rG + B) - bP = prG + pbG - bpG = prG = rP
   // then decrypt: H(rP)^m
-  console.log("proxyPub",proxyPub);
-  const negShared = proxyPub.mul(priv).neg();
-  const shared = ci.random.add(negShared);
-  console.log("SHARED",shared);
+  const negShared = c.point().set(proxyPub).mul(priv).neg();
+  const shared = negShared.add(ci.random);
   const xorkey = hkdf(shared);
   const plain = xor(xorkey, ci.cipher);
   return ok(plain);
