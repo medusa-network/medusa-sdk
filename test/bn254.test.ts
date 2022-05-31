@@ -21,6 +21,8 @@ describe("testing bn254 wrapper", () => {
 
   it("new keypair", () => {
     const kp = newKeypair(curve);
+    assert.ok(!kp.pubkey.equal(curve.point().zero()));
+    assert.ok(!kp.secret.equal(curve.scalar().zero()));
   });
 
   it("serialization scalar", () => {

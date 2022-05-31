@@ -14,7 +14,7 @@ export function newKeypair<
   C extends Curve<S, P>
 >(c: C): KeyPair<S, P> {
   const priv = c.scalar().random();
-  const pubkey = c.point().mul(priv);
+  const pubkey = c.point().one().mul(priv);
   const kp: KeyPair<S, P> = {
     secret: priv,
     pubkey: pubkey,
