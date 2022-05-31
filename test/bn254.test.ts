@@ -13,14 +13,23 @@ describe("testing bn254 wrapper", () => {
     const f2 = curve.scalar().random();
     const p1 = curve.point().one().mul(f1);
     const p2 = curve.point().one().mul(f2);
-    const p3 = p1.add(p2);
-    const f3 = f1.add(f2);
+    const p3 = curve.point().set(p1).add(p2);
+    const f3 = curve.scalar().set(f1).add(f2);
+    // (s1+s2)G = s3G
     const exp = curve.point().one().mul(f3);
     assert.ok(exp.equal(p3));
+    // (s1+s2)G - s1G = s2G
+    const exp2 = curve.point().set(exp).add(curve.point().set(p1).neg());
+    assert.ok(exp2.equal(p2));
+    let minus = curve.point().set(p1).neg();
+    minus = minus.add(p1);
+    assert.ok(minus.equal(curve.point().zero()));
   });
 
   it("new keypair", () => {
     const kp = newKeypair(curve);
+    assert.ok(!kp.pubkey.equal(curve.point().zero()));
+    assert.ok(!kp.secret.equal(curve.scalar().zero()));
   });
 
   it("serialization scalar", () => {

@@ -71,7 +71,7 @@ export type EncryptionRes<S extends Scalar, P extends Point<S>> = Result<
 >;
 export function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   c: Curve<S, P>,
-  p: P,
+  recipient: P,
   msg: Uint8Array
 ): EncryptionRes<S, P> {
   if (msg.length !== HKDF_SIZE) {
@@ -79,8 +79,8 @@ export function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   }
   // { rG, H(rP) ^ m } where P = pG public key recipient
   const fr = c.scalar().random();
-  const r = c.point().mul(fr);
-  const shared = p.mul(fr);
+  const r = c.point().one().mul(fr);
+  const shared = c.point().set(recipient).mul(fr);
   const xorkey = hkdf(shared);
   const ciphertext = xor(xorkey, msg);
   const cipher = new Ciphertext(r, ciphertext);
@@ -102,8 +102,8 @@ export function decryptReencryption<
   // to decrypt, compute
   // p(rG + B) - bP = prG + pbG - bpG = prG = rP
   // then decrypt: H(rP)^m
-  const negShared = proxyPub.mul(priv).neg();
-  const shared = ci.random.add(negShared);
+  const negShared = c.point().set(proxyPub).mul(priv).neg();
+  const shared = negShared.add(ci.random);
   const xorkey = hkdf(shared);
   const plain = xor(xorkey, ci.cipher);
   return ok(plain);
