@@ -46,4 +46,15 @@ describe("Test Encoding ", function () {
     expect(r.isOk()).to.be.true;
     expect(r._unsafeUnwrap().equal(random)).to.be.true;
   });
+
+  it("decode g1point", async () => {
+    const k = {
+      x: "0xec60410d6b756865514cbf64796bde8fdcb13eeff05b05d618098bd5b5461e17",
+      y: "0x2eaecebdb8c74ac34eca26f8ff0c0b2e4f514478adf29abd65f410983a30682e",
+    };
+    const xa = ethers.BigNumber.from(k.x);
+    const ya = ethers.BigNumber.from(k.y);
+    const p = curve.point().fromEvm({ x: xa, y: ya });
+    expect(p.isOk()).to.be.true;
+  });
 });
