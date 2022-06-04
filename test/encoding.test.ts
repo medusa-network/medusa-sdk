@@ -56,5 +56,12 @@ describe("Test Encoding ", function () {
     const ya = ethers.BigNumber.from(k.y);
     const p = curve.point().fromEvm({ x: xa, y: ya });
     expect(p.isOk()).to.be.true;
+
+    const [owner] = await ethers.getSigners();
+    const testContract = await new TestContract__factory(owner).deploy();
+    await testContract.setDistributedKey({x: xa, y: ya}); 
+    const key = await testContract.distributedKey();
+    const found = curve.point().fromEvm(key);
+    expect(found.isOk()).to.be.true;
   });
 });
