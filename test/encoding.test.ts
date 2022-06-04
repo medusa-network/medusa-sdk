@@ -59,9 +59,11 @@ describe("Test Encoding ", function () {
 
     const [owner] = await ethers.getSigners();
     const testContract = await new TestContract__factory(owner).deploy();
-    await testContract.setDistributedKey({x: xa, y: ya}); 
+    await testContract.setDistributedKey({ x: xa, y: ya });
     const key = await testContract.distributedKey();
     const found = curve.point().fromEvm(key);
     expect(found.isOk()).to.be.true;
+    const foundp = found._unsafeUnwrap();
+    expect(foundp.equal(p._unsafeUnwrap())).to.be.true;
   });
 });
