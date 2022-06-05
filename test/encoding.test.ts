@@ -49,8 +49,8 @@ describe("Test Encoding ", function () {
 
   it("decode g1point", async () => {
     const k = {
-      x: "0xec60410d6b756865514cbf64796bde8fdcb13eeff05b05d618098bd5b5461e17",
-      y: "0x2eaecebdb8c74ac34eca26f8ff0c0b2e4f514478adf29abd65f410983a30682e",
+      x: "0x15c8c2f4cfc80b9b32b251b982a166897937c2871750ed89d6a936f25dad08d7",
+      y: "0x13ec828ee5f92c2fc7cd3cf4f85f0b3e7ede055f6aba147cba7efb89d8b5ec74",
     };
     const xa = ethers.BigNumber.from(k.x);
     const ya = ethers.BigNumber.from(k.y);
