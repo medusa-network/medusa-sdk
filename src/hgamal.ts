@@ -6,6 +6,8 @@ import assert from "assert";
 import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding } from "./encoding";
 import hkdf from "js-crypto-hkdf";
+import { arrayify } from "ethers/lib/utils";
+import { bnToArray } from "./utils";
 
 export class EVMCipher {
   random: EVMPoint;
@@ -110,17 +112,23 @@ export async function decryptReencryption<
   // then decrypt: H(rP)^m
   const negShared = c.point().set(proxyPub).mul(priv).neg();
   const shared = negShared.add(ci.random);
-  console.log("DECRYPT SHARED KEY -> ",shared.toEvm());
+  console.log("DECRYPT SHARED KEY -> ", shared.toEvm());
   const xorkey = await sharedKey(shared);
   const plain = xor(xorkey, ci.cipher);
   return ok(plain);
 }
 
 // TODO should it use async version ?
-async function sharedKey<S extends Scalar, P extends Point<S>>(
+export async function sharedKey<S extends Scalar, P extends Point<S>>(
   p: P
 ): Promise<Uint8Array> {
-  const masterSecret = p.serialize();
+  const h = crypto.createHash("sha256");
+  const data = p.toEvm();
+  h.update(bnToArray(data.x,true));
+  h.update(bnToArray(data.y,true));
+  const masterSecret = h.digest();
+
+  // const masterSecret = p.serialize();
   const hash = "SHA-256";
   const length = 32; // derived key length
   const info = ""; // information specified in rfc5869
