@@ -4,13 +4,15 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 // eslint-disable-next-line no-unused-vars
-//import { ethers } from "hardhat";
-const ethers = require("hardhat");
+// import { ethers } from "hardhat";
+// const ethers = require("hardhat");
+const ethers = require("ethers");
 const ts = require("../../contracts/typechain");
-//import {
+const bn254 = require("../src/bn254");
+
+// import {
 // IEncryptionOracle,
 // } from "../../contracts/typechain";
-
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -19,13 +21,18 @@ async function main() {
   // If this script is run directly using `node` you may want to call compile
   // manually to make sure everything is compiled
   // await hre.run('compile');
-
-  const provider =
-    "wss://eth-goerli.alchemyapi.io/v2/l8Hmor8Sp3Owu8kjDVM87gF0YZNSf_60";
+  await bn254.init();
   const address = "0x2344f64e3acf6956a08310b2be7be1df0d265a6f";
-  const contract = new ts.IEncryptionOracle(provider, address);
+  const url =
+    "https://eth-goerli.alchemyapi.io/v2/l8Hmor8Sp3Owu8kjDVM87gF0YZNSf_60";
+  const provider = new ethers.providers.JsonRpcProvider(url);
+  // const provider = ethers.providers.Provider;
+  // const contract = new ts.IEncryptionOracle(provider, address);
+  const contract = ts.EncryptionOracle__factory.connect(address, provider);
   const key = await contract.distributedKey();
-  console.log("Greeter deployed to:", key);
+  const point = bn254.curve.point().fromEvm({x: key.x, y:key.y});
+  console.log("Valid point? ", point.isOk());
+  console.log("Coordinates: x: ", key.x, "y = ", key.y);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
