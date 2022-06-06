@@ -23,7 +23,7 @@ async function main() {
   const provider =
     "wss://eth-goerli.alchemyapi.io/v2/l8Hmor8Sp3Owu8kjDVM87gF0YZNSf_60";
   const address = "0x2344f64e3acf6956a08310b2be7be1df0d265a6f";
-  const contract = ts.IEncryptionOracle.connect(provider, address);
+  const contract = new ts.IEncryptionOracle(provider, address);
   const key = await contract.distributedKey();
   console.log("Greeter deployed to:", key);
 }
