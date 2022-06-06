@@ -4,10 +4,12 @@
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 // eslint-disable-next-line no-unused-vars
-import { ethers } from "hardhat";
-import {
-  IEncryptionOracle,
-} from "../../contracts/typechain";
+//import { ethers } from "hardhat";
+const ethers = require("hardhat");
+const ts = require("../../contracts/typechain");
+//import {
+// IEncryptionOracle,
+// } from "../../contracts/typechain";
 
 
 async function main() {
@@ -21,7 +23,7 @@ async function main() {
   const provider =
     "wss://eth-goerli.alchemyapi.io/v2/l8Hmor8Sp3Owu8kjDVM87gF0YZNSf_60";
   const address = "0x2344f64e3acf6956a08310b2be7be1df0d265a6f";
-  const contract = new IEncryptionOracle().connect(provider, address);
+  const contract = ts.IEncryptionOracle.connect(provider, address);
   const key = await contract.distributedKey();
   console.log("Greeter deployed to:", key);
 }

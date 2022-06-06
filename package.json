@@ -2,7 +2,6 @@
   "name": "medusa-js",
   "version": "1.0.0",
   "description": "",
-  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test"
