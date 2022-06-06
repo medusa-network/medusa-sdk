@@ -7,6 +7,7 @@
 // import { ethers } from "hardhat";
 // const ethers = require("hardhat");
 const ethers = require("ethers");
+const encoding = require("../src/encoding");
 const { hexlify, arrayify } = require("ethers/lib/utils");
 const ts = require("../../contracts/typechain");
 const bn254 = require("../src/bn254");
@@ -31,13 +32,9 @@ async function main() {
   // const contract = new ts.IEncryptionOracle(provider, address);
   const contract = ts.EncryptionOracle__factory.connect(address, provider);
   const key = await contract.distributedKey();
-  const xbuff = arrayify(key.x.toHexString()).reverse();
-  const ybuff = arrayify(key.y.toHexString()).reverse();
-  const xgood = ethers.BigNumber.from(hexlify(xbuff));
-  const ygood = ethers.BigNumber.from(hexlify(ybuff));
-  const p = { x: xgood, y: ygood };
-  console.log("Point retrieved from contract is: x:", p.x, "y:", p.y);
-  const point = bn254.curve.point().fromEvm(p);
+  //const p = { x: key.x.reverseEndianness(), y: key.y.reverseEndianness() };
+  //console.log("Point retrieved from contract is: x:", p.x, "y:", p.y);
+  const point = bn254.curve.point().fromEvm(key);
   console.log("Valid point? ", point.isOk());
   console.log("Coordinates: x: ", key.x, "y = ", key.y);
 }
