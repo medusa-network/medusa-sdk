@@ -5,6 +5,7 @@ import * as crypto from "crypto";
 import assert from "assert";
 import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding } from "./encoding";
+import hkdf from "js-crypto-hkdf";
 
 export class EVMCipher {
   random: EVMPoint;
@@ -69,11 +70,11 @@ export type EncryptionRes<S extends Scalar, P extends Point<S>> = Result<
   Ciphertext<S, P>,
   EncryptionError
 >;
-export function encrypt<S extends SecretKey, P extends PublicKey<S>>(
+export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   c: Curve<S, P>,
   recipient: P,
   msg: Uint8Array
-): EncryptionRes<S, P> {
+): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid plaintext size"));
   }
@@ -81,16 +82,21 @@ export function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   const fr = c.scalar().random();
   const r = c.point().one().mul(fr);
   const shared = c.point().set(recipient).mul(fr);
-  const xorkey = hkdf(shared);
+  const xorkey = await sharedKey(shared);
   const ciphertext = xor(xorkey, msg);
   const cipher = new Ciphertext(r, ciphertext);
   return ok(cipher);
 }
 export type DecryptionRes = Result<Uint8Array, EncryptionError>;
-export function decryptReencryption<
+export async function decryptReencryption<
   S extends SecretKey,
   P extends PublicKey<S>
->(c: Curve<S, P>, priv: S, proxyPub: P, ci: Ciphertext<S, P>): DecryptionRes {
+>(
+  c: Curve<S, P>,
+  priv: S,
+  proxyPub: P,
+  ci: Ciphertext<S, P>
+): Promise<DecryptionRes> {
   if (ci.cipher.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid cipher size"));
   }
@@ -104,17 +110,23 @@ export function decryptReencryption<
   // then decrypt: H(rP)^m
   const negShared = c.point().set(proxyPub).mul(priv).neg();
   const shared = negShared.add(ci.random);
-  const xorkey = hkdf(shared);
+  console.log("DECRYPT SHARED KEY -> ",shared.toEvm());
+  const xorkey = await sharedKey(shared);
   const plain = xor(xorkey, ci.cipher);
   return ok(plain);
 }
 
 // TODO should it use async version ?
-function hkdf<S extends Scalar, P extends Point<S>>(p: P): Uint8Array {
-  const h = crypto.createHash("sha256");
-  const data = p.serialize();
-  h.update(data);
-  return h.digest();
+async function sharedKey<S extends Scalar, P extends Point<S>>(
+  p: P
+): Promise<Uint8Array> {
+  const masterSecret = p.serialize();
+  const hash = "SHA-256";
+  const length = 32; // derived key length
+  const info = ""; // information specified in rfc5869
+  const salt = new Uint8Array([]);
+  const res = await hkdf.compute(masterSecret, hash, length, info, salt);
+  return res.key;
 }
 
 function xor(key: Uint8Array, msg: Uint8Array): Uint8Array {
