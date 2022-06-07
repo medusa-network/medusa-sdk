@@ -127,6 +127,10 @@ export async function sharedKey<S extends Scalar, P extends Point<S>>(
   h.update(bnToArray(data.x, true));
   h.update(bnToArray(data.y, true));
   return h.digest();
+  // TODO for now we keep it a simple hash - because we might
+  // want to verify it in a solidity contract so hkdf might be too
+  // expensive or not available -> given it's a random key each
+  // time it should be fine.
   //const masterSecret = h.digest();
   //// const masterSecret = p.serialize();
   //const hash = "SHA-256";
