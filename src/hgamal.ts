@@ -124,17 +124,17 @@ export async function sharedKey<S extends Scalar, P extends Point<S>>(
 ): Promise<Uint8Array> {
   const h = crypto.createHash("sha256");
   const data = p.toEvm();
-  h.update(bnToArray(data.x,true));
-  h.update(bnToArray(data.y,true));
-  const masterSecret = h.digest();
-
-  // const masterSecret = p.serialize();
-  const hash = "SHA-256";
-  const length = 32; // derived key length
-  const info = ""; // information specified in rfc5869
-  const salt = new Uint8Array([]);
-  const res = await hkdf.compute(masterSecret, hash, length, info, salt);
-  return res.key;
+  h.update(bnToArray(data.x, true));
+  h.update(bnToArray(data.y, true));
+  return h.digest();
+  //const masterSecret = h.digest();
+  //// const masterSecret = p.serialize();
+  //const hash = "SHA-256";
+  //const length = 32; // derived key length
+  //const info = ""; // information specified in rfc5869
+  //const salt = new Uint8Array([]);
+  //const res = await hkdf.compute(masterSecret, hash, length, info, salt);
+  //return res.key;
 }
 
 function xor(key: Uint8Array, msg: Uint8Array): Uint8Array {
