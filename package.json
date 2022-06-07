@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "hardhat": "^2.9.5",
+    "js-crypto-hkdf": "^1.0.4",
     "neverthrow": "^4.3.1"
   },
   "devDependencies": {

@@ -127,6 +127,7 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
   }
 
   serialize(): Uint8Array {
+    this.p.normalize();
     return this.p.serialize();
   }
 
@@ -161,15 +162,16 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
     z.setInt(1);
     this.p.setZ(z);
 
-    if (!this.p.isValid()) {
+    if (!this.p.isValid() || !this.p.isValidOrder()) {
       return err(new EncodingError("invalid x y coordinates"));
     }
     return ok(this);
   }
 
   toEvm(): EVMPoint {
-    const x = BigNumber.from(this.p.getX().serialize());
-    const y = BigNumber.from(this.p.getY().serialize());
+    this.p.normalize();
+    const x = BigNumber.from(this.p.getX().serialize().reverse());
+    const y = BigNumber.from(this.p.getY().serialize().reverse());
     return {
       x: x,
       y: y,
@@ -177,8 +179,8 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
   }
 
   fromEvm(p: EVMPoint): EncodingRes<this> {
-    const x = bnToArray(p.x);
-    const y = bnToArray(p.y);
+    const x = bnToArray(p.x, true);
+    const y = bnToArray(p.y, true);
     return this.fromXY(x,y);
   }
 }

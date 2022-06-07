@@ -8,7 +8,8 @@ import {
 } from "../../contracts/typechain";
 import { init, curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
-import { hexlify, randomBytes } from "ethers/lib/utils";
+import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
+import { arrayToBn, bnToArray } from "../src/utils";
 
 describe("Test Encoding ", function () {
   before(async () => {
@@ -52,8 +53,8 @@ describe("Test Encoding ", function () {
       x: "0x15c8c2f4cfc80b9b32b251b982a166897937c2871750ed89d6a936f25dad08d7",
       y: "0x13ec828ee5f92c2fc7cd3cf4f85f0b3e7ede055f6aba147cba7efb89d8b5ec74",
     };
-    const xa = ethers.BigNumber.from(k.x);
-    const ya = ethers.BigNumber.from(k.y);
+    const xa = arrayToBn(arrayify(k.x),true);
+    const ya = arrayToBn(arrayify(k.y),true);
     const p = curve.point().fromEvm({ x: xa, y: ya });
     expect(p.isOk()).to.be.true;
 
