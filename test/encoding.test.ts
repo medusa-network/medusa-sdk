@@ -10,6 +10,8 @@ import { init, curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
+import assert from "assert";
+
 
 describe("Test Encoding ", function () {
   before(async () => {
@@ -49,22 +51,31 @@ describe("Test Encoding ", function () {
   });
 
   it("decode g1point", async () => {
-    const k = {
-      x: "0x15c8c2f4cfc80b9b32b251b982a166897937c2871750ed89d6a936f25dad08d7",
-      y: "0x13ec828ee5f92c2fc7cd3cf4f85f0b3e7ede055f6aba147cba7efb89d8b5ec74",
-    };
-    const xa = arrayToBn(arrayify(k.x),true);
-    const ya = arrayToBn(arrayify(k.y),true);
-    const p = curve.point().fromEvm({ x: xa, y: ya });
-    expect(p.isOk()).to.be.true;
-
+    const point = curve.point().random();
     const [owner] = await ethers.getSigners();
     const testContract = await new TestContract__factory(owner).deploy();
-    await testContract.setDistributedKey({ x: xa, y: ya });
+    const res = await testContract.setDistributedKey(point.toEvm());
+    const receipt = await res.wait();
+    assert.strictEqual(receipt.status,1);
     const key = await testContract.distributedKey();
     const found = curve.point().fromEvm(key);
     expect(found.isOk()).to.be.true;
     const foundp = found._unsafeUnwrap();
-    expect(foundp.equal(p._unsafeUnwrap())).to.be.true;
+    expect(foundp.equal(point)).to.be.true;
+  });
+
+  it("produce g1point for ruse", async() => {
+    const s = curve.scalar().random();
+    const p = curve.point().one().mul(s);
+    const shex = s.toEvm();
+    const phex = p.toEvm();
+    const obj = {
+      s: shex.toHexString(),
+      p: {
+        x: phex.x.toHexString(),
+        y: phex.y.toHexString(),
+      },
+    };
+    console.log(JSON.stringify(obj,null,2));
   });
 });
