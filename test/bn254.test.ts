@@ -8,6 +8,16 @@ describe("testing bn254 wrapper", () => {
   before(async () => {
     await init();
   });
+
+  it("show bases", () => {
+    const baseString = "MEDUSA_DLEQ_BN254_BASE2";
+    const p = curve.point().setHashOf(baseString);
+    const e = p.toEvm();
+    console.log(baseString);
+    console.log("x:", e.x.toString());
+    console.log("y:", e.y.toString());
+  });
+
   it("group operations", () => {
     const f1 = curve.scalar().random();
     const f2 = curve.scalar().random();

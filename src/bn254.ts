@@ -109,10 +109,10 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
 
   random(): this {
     const random = randHex(32);
-    return this.map(random);
+    return this.setHashOf(random);
   }
 
-  map(m: string): this {
+  setHashOf(m: string): this {
     this.p.setHashOf(m);
     return this;
   }
@@ -181,7 +181,7 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
   fromEvm(p: EVMPoint): EncodingRes<this> {
     const x = bnToArray(p.x, true);
     const y = bnToArray(p.y, true);
-    return this.fromXY(x,y);
+    return this.fromXY(x, y);
   }
 }
 
