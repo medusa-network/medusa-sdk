@@ -19,8 +19,8 @@ export interface Scalar extends Atom<Scalar>, EVMEncoding<BigNumber> {
 
 export interface Point<S extends Scalar>
   extends Atom<S>,
-    EVMEncoding<EVMPoint> {
-  map(m: string): this;
+  EVMEncoding<EVMPoint> {
+  setHashOf(m: string): this;
   fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
 }
 
