@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/**/*.json",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "postinstall": "npm run build:typechain"
   },
   "engines": {
     "node": ">=16.0.0"
