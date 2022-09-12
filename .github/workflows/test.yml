@@ -19,6 +19,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.CI_ACCESS_TOKEN }} # TODO: This token is attached to @jaeaster personal account;
+          submodules: recursive                 #       make the contracts repo public or use a github Machine User instead
+                                                # Note: Token Expires on Sun, Dec 11 2022
+
+      # Need foundry to build medusa contracts for typechain bindings
+      - name: Install Foundry
+        uses: onbjerg/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies for contracts
+        working-directory: contracts
+        run: forge install
+
+      - name: Build contracts
+        working-directory: contracts
+        run: forge build
+
+      # npm ci builds typechain bindings because it runs `npm run postinstall`
       - uses: volta-cli/action@v1
       - run: npm ci
 

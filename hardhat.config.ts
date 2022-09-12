@@ -40,6 +40,7 @@ const config: HardhatUserConfig = {
 
   paths: {
     tests: "./test",
+    sources: "./does-not-exist",
   },
 };
 
