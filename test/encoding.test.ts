@@ -2,16 +2,12 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Contract, Signer } from "ethers";
-import {
-  IEncryptionOracle,
-  TestContract__factory,
-} from "../../contracts/typechain";
+import { IEncryptionOracle, TestContract__factory } from "../typechain";
 import { init, curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
 import assert from "assert";
-
 
 describe("Test Encoding ", function () {
   before(async () => {
@@ -56,7 +52,7 @@ describe("Test Encoding ", function () {
     const testContract = await new TestContract__factory(owner).deploy();
     const res = await testContract.setDistributedKey(point.toEvm());
     const receipt = await res.wait();
-    assert.strictEqual(receipt.status,1);
+    assert.strictEqual(receipt.status, 1);
     const key = await testContract.distributedKey();
     const found = curve.point().fromEvm(key);
     expect(found.isOk()).to.be.true;
@@ -64,7 +60,7 @@ describe("Test Encoding ", function () {
     expect(foundp.equal(point)).to.be.true;
   });
 
-  it("produce g1point for ruse", async() => {
+  it("produce g1point for ruse", async () => {
     const s = curve.scalar().random();
     const p = curve.point().one().mul(s);
     const shex = s.toEvm();
@@ -76,6 +72,6 @@ describe("Test Encoding ", function () {
         y: phex.y.toHexString(),
       },
     };
-    console.log(JSON.stringify(obj,null,2));
+    console.log(JSON.stringify(obj, null, 2));
   });
 });
