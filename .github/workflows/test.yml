@@ -18,7 +18,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.CI_ACCESS_TOKEN }} # TODO: This token is attached to @jaeaster personal account;
           submodules: recursive                 #       make the contracts repo public or use a github Machine User instead
