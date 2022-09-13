@@ -20,4 +20,3 @@ export interface EVMEncoding<T> {
   toEvm(): T;
   fromEvm(t: T): EncodingRes<this>;
 }
-
