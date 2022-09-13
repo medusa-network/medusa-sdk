@@ -34,24 +34,12 @@ jobs:
       - uses: volta-cli/action@v1
       - run: npm ci
 
-      # - name: Build
-      #   run: npm run build
-      #
-      # - name: Format check
-      #   run: npm run format:check
-      #
-      # - name: Lint check
-      #   run: npm run lint:check
-      #
-      # - name: Spell check
-      #   run: npm run spell:check
+      - name: Lint check
+        run: npm run lint
 
       - name: Test
         run: npm test
 
-      # - name: Setup test
-      #   run: npm run test:setup
-      #
       # - name: Release
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
