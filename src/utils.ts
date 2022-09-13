@@ -11,8 +11,8 @@ export function onlyZero(b: Uint8Array): boolean {
 
 export function bnToArray(
   big: BigNumber,
-  reverse: Boolean = false,
-  padToLength: number = 0
+  reverse = false,
+  padToLength = 0
 ): Uint8Array {
   const arr = arrayify(
     padToLength > 0
@@ -27,7 +27,7 @@ export function bnToArray(
   return arr;
 }
 
-export function arrayToBn(a: Uint8Array, reverse: Boolean = false): BigNumber {
+export function arrayToBn(a: Uint8Array, reverse = false): BigNumber {
   if (reverse) {
     return BigNumber.from(a.reverse());
   }

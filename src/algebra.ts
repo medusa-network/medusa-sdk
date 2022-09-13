@@ -1,5 +1,6 @@
-import { BigNumber, BigNumberish } from "ethers";
+import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding } from "./encoding";
+
 export interface Atom<RHS> {
   add(e: this): this;
   mul(r: RHS): this;
@@ -17,16 +18,16 @@ export interface Scalar extends Atom<Scalar>, EVMEncoding<BigNumber> {
   inverse(): this;
 }
 
-export interface Point<S extends Scalar>
-  extends Atom<S>,
-  EVMEncoding<EVMPoint> {
-  setHashOf(m: string): this;
-  fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
-}
-
 export interface EVMPoint {
   x: BigNumber;
   y: BigNumber;
+}
+
+export interface Point<S extends Scalar>
+  extends Atom<S>,
+    EVMEncoding<EVMPoint> {
+  setHashOf(m: string): this;
+  fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
 }
 
 // Unfortunately we can not have static methods on scalar

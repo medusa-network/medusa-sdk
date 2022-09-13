@@ -1,4 +1,4 @@
-name: Typescript tests
+name: Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 jobs:
-  ts:
+  tests:
     runs-on: ubuntu-latest
 
     concurrency:
@@ -18,7 +18,7 @@ jobs:
       cancel-in-progress: true
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.CI_ACCESS_TOKEN }} # TODO: This token is attached to @jaeaster personal account;
           submodules: recursive                 #       make the contracts repo public or use a github Machine User instead
@@ -30,36 +30,16 @@ jobs:
         with:
           version: nightly
 
-      - name: Install dependencies for contracts
-        working-directory: contracts
-        run: forge install
-
-      - name: Build contracts
-        working-directory: contracts
-        run: forge build
-
-      # npm ci builds typechain bindings because it runs `npm run postinstall`
+      # npm ci builds contracts + typechain bindings because it runs `npm run postinstall`
       - uses: volta-cli/action@v1
       - run: npm ci
 
-      # - name: Build
-      #   run: npm run build
-      #
-      # - name: Format check
-      #   run: npm run format:check
-      #
-      # - name: Lint check
-      #   run: npm run lint:check
-      #
-      # - name: Spell check
-      #   run: npm run spell:check
+      - name: Lint check
+        run: npm run lint
 
       - name: Test
         run: npm test
 
-      # - name: Setup test
-      #   run: npm run test:setup
-      #
       # - name: Release
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

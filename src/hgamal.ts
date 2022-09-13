@@ -63,7 +63,7 @@ export default class EncryptionError extends Error {
     Object.setPrototypeOf(this, EncryptionError.prototype);
   }
 
-  getErrorMessage() {
+  getErrorMessage(): string {
     return "encryption err: " + this.message;
   }
 }
@@ -131,14 +131,14 @@ export async function sharedKey<S extends Scalar, P extends Point<S>>(
   // want to verify it in a solidity contract so hkdf might be too
   // expensive or not available -> given it's a random key each
   // time it should be fine.
-  //const masterSecret = h.digest();
-  //// const masterSecret = p.serialize();
-  //const hash = "SHA-256";
-  //const length = 32; // derived key length
-  //const info = ""; // information specified in rfc5869
-  //const salt = new Uint8Array([]);
-  //const res = await hkdf.compute(masterSecret, hash, length, info, salt);
-  //return res.key;
+  // const masterSecret = h.digest();
+  /// / const masterSecret = p.serialize();
+  // const hash = "SHA-256";
+  // const length = 32; // derived key length
+  // const info = ""; // information specified in rfc5869
+  // const salt = new Uint8Array([]);
+  // const res = await hkdf.compute(masterSecret, hash, length, info, salt);
+  // return res.key;
 }
 
 function xor(key: Uint8Array, msg: Uint8Array): Uint8Array {
