@@ -1,4 +1,4 @@
-name: Typescript tests
+name: Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 jobs:
-  ts:
+  tests:
     runs-on: ubuntu-latest
 
     concurrency:
@@ -30,15 +30,7 @@ jobs:
         with:
           version: nightly
 
-      - name: Install dependencies for contracts
-        working-directory: contracts
-        run: forge install
-
-      - name: Build contracts
-        working-directory: contracts
-        run: forge build
-
-      # npm ci builds typechain bindings because it runs `npm run postinstall`
+      # npm ci builds contracts + typechain bindings because it runs `npm run postinstall`
       - uses: volta-cli/action@v1
       - run: npm ci
 
