@@ -1,4 +1,4 @@
-import { Point, Scalar, Curve, Atom } from "./algebra";
+import { Point, Scalar, Curve } from "./algebra";
 
 export type PublicKey<S extends Scalar> = Point<S>;
 export type SecretKey = Scalar;

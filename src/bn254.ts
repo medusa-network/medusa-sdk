@@ -6,7 +6,7 @@ import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
 
-export async function init() {
+export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);
 }

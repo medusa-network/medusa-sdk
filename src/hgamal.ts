@@ -63,7 +63,7 @@ export default class EncryptionError extends Error {
     Object.setPrototypeOf(this, EncryptionError.prototype);
   }
 
-  getErrorMessage() {
+  getErrorMessage(): string {
     return "encryption err: " + this.message;
   }
 }
