@@ -46,6 +46,18 @@ describe("Test Encoding ", function () {
     expect(r._unsafeUnwrap().equal(random)).to.be.true;
   });
 
+  it("non-aligned values from EVM are zero-padded to 32 bytes", () => {
+    const x = BigNumber.from(
+      "69433070941023771994177046973345245040155856504302196671035682426544325470"
+    );
+    const y = BigNumber.from(
+      "3933316350851654905519662377468250369417328085252457770283816391639153292475"
+    );
+
+    // Note: Errors if values are not deserialized correctly to 32-bytes
+    curve.point().fromEvm({ x, y });
+  });
+
   it("decode g1point", async () => {
     const point = curve.point().random();
     const [owner] = await ethers.getSigners();

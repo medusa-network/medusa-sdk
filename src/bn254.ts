@@ -179,8 +179,8 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
   }
 
   fromEvm(p: EVMPoint): EncodingRes<this> {
-    const x = bnToArray(p.x, true);
-    const y = bnToArray(p.y, true);
+    const x = bnToArray(p.x, true, 32);
+    const y = bnToArray(p.y, true, 32);
     return this.fromXY(x, y);
   }
 }

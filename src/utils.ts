@@ -9,16 +9,26 @@ export function onlyZero(b: Uint8Array): boolean {
   return b.filter((x) => x !== 0).length === 0;
 }
 
-export function bnToArray(big: BigNumber, reverse?: Boolean): Uint8Array {
-  const arr = arrayify(big.toHexString());
-  if (typeof reverse !== "undefined" && reverse === true) {
+export function bnToArray(
+  big: BigNumber,
+  reverse: Boolean = false,
+  padToLength: number = 0
+): Uint8Array {
+  const arr = arrayify(
+    padToLength > 0
+      ? hexZeroPad(big.toHexString(), padToLength)
+      : big.toHexString()
+  );
+
+  if (reverse) {
     return arr.reverse();
   }
+
   return arr;
 }
 
-export function arrayToBn(a: Uint8Array, reverse?: Boolean): BigNumber {
-  if (typeof reverse !== "undefined" && reverse === true) {
+export function arrayToBn(a: Uint8Array, reverse: Boolean = false): BigNumber {
+  if (reverse) {
     return BigNumber.from(a.reverse());
   }
   return BigNumber.from(a);
