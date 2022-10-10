@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1",
+  "version": "0.0.1-rc5",
   "description": "",
   "main": "index.ts",
   "scripts": {
