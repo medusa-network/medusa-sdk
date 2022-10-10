@@ -11,6 +11,10 @@
     "test": "hardhat test",
     "prepack": "npm run build:bindings"
   },
+  "files": [
+    "/src",
+    "/typechain"
+  ],
   "engines": {
     "node": ">=16.0.0"
   },
