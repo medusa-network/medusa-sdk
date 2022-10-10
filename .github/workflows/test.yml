@@ -30,9 +30,12 @@ jobs:
         with:
           version: nightly
 
-      # npm ci builds contracts + typechain bindings because it runs `npm run postinstall`
       - uses: volta-cli/action@v1
+
       - run: npm ci
+
+      - name: Build Bindings
+        run: npm run build:bindings
 
       - name: Lint check
         run: npm run lint
