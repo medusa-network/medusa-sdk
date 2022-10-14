@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc8",
+  "version": "0.0.1-rc9",
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build:contracts": "cd contracts && forge install && forge build",
-    "build:typechain": "typechain --target ethers-v5 --out-dir src/typechain contracts/out/**/*.json",
+    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/**/*.json",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
@@ -25,7 +25,9 @@
   "dependencies": {
     "hardhat": "^2.9.5",
     "js-crypto-hkdf": "^1.0.4",
-    "neverthrow": "^4.3.1"
+    "neverthrow": "^4.3.1",
+    "mcl-wasm": "^1.0.2",
+    "ethers": "^5.6.6"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
@@ -48,9 +50,7 @@
     "eslint-plugin-prettier": "^3.4.1",
     "eslint-plugin-promise": "^5.2.0",
     "ethereum-waffle": "^3.4.4",
-    "ethers": "^5.6.6",
     "hardhat-gas-reporter": "^1.0.8",
-    "mcl-wasm": "^1.0.2",
     "prettier": "^2.6.2",
     "ts-node": "^10.7.0",
     "typechain": "^8.1.0",
