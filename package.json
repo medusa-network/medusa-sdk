@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc6",
+  "version": "0.0.1-rc7",
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
     "test": "hardhat test",
-    "prepack": "npm run build:bindings"
+    "prepack": "npm run build:bindings && npm run build"
   },
   "engines": {
     "node": ">=16.0.0"
