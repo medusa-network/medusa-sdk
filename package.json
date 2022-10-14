@@ -1,25 +1,26 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc5",
+  "version": "0.0.1-rc6",
   "description": "",
-  "main": "index.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "/lib"
+  ],
   "scripts": {
     "build:contracts": "cd contracts && forge install && forge build",
-    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/**/*.json",
+    "build:typechain": "typechain --target ethers-v5 --out-dir src/typechain contracts/out/**/*.json",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
     "test": "hardhat test",
     "prepack": "npm run build:bindings"
   },
-  "files": [
-    "/src",
-    "/typechain"
-  ],
   "engines": {
     "node": ">=16.0.0"
   },
   "keywords": [],
-  "author": "",
+  "author": "Cryptonet",
   "license": "ISC",
   "dependencies": {
     "hardhat": "^2.9.5",
