@@ -1,4 +1,3 @@
-//import test from "ava";
 import assert from "assert";
 import { init, curve } from "../src/bn254";
 import { newKeypair } from "../src/index";

@@ -1,6 +1,6 @@
 import { BigNumber, utils } from "ethers";
 import { Point, Scalar, Curve } from "./algebra";
-import { curve as defaultCurve } from "./bn254";
+export { curve as defaultCurve, init } from "./bn254";
 
 export type PublicKey<S extends Scalar> = Point<S>;
 export type SecretKey = Scalar;
@@ -9,8 +9,6 @@ export interface KeyPair<S extends Scalar, P extends Point<Scalar>> {
   secret: S;
   pubkey: P;
 }
-
-export { defaultCurve };
 
 export function newKeypair<
   S extends Scalar,
@@ -55,8 +53,4 @@ export function calculateKeyPair<
       n++;
     }
   }
-}
-
-export function foo(a: number, b: number): number {
-  return a + b;
 }
