@@ -33,8 +33,7 @@ export function calculateKeyPair<
   const hash = utils.keccak256(signature);
   let BN = BigNumber.from(hash);
   let n = 0;
-  let found = false;
-  while (!found) {
+  while (true) {
     try {
       // Take the scalar from the number
       BN = BN.add(n);
@@ -47,7 +46,6 @@ export function calculateKeyPair<
         secret: unwrapped,
         pubkey: pubkey,
       };
-      found = true;
       return kp;
     } catch (e) {
       n++;
