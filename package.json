@@ -1,7 +1,10 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.4-rc2",
+  "version": "0.0.1-rc1",
   "description": "",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
