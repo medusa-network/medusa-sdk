@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.4-rc1",
+  "version": "0.0.4-rc2",
   "description": "",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
