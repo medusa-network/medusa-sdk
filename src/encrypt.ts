@@ -102,6 +102,9 @@ export class HGamalSuite<
     );
 
     const decrypted = secretbox.open(message, nonce, key);
+    if (decrypted === null) {
+      return err(new hgamal.EncryptionError("Authenticated decryption failed"));
+    }
     return ok(decrypted);
   }
 }
