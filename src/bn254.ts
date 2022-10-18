@@ -5,13 +5,18 @@ import * as mcl from "mcl-wasm";
 import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
+import { ToBytes } from "../src/transcript";
 
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);
 }
 
-export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber> {
+export class Fr 
+    implements Atom<Fr>, 
+      Scalar, 
+      EVMEncoding<BigNumber>,
+      ToBytes {
   f: mcl.Fr;
   constructor() {
     this.f = new mcl.Fr();

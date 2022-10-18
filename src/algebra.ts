@@ -1,5 +1,6 @@
 import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding } from "./encoding";
+import { ToBytes } from "./transcript";
 
 export interface Atom<RHS> {
   add(e: this): this;
@@ -14,7 +15,10 @@ export interface Atom<RHS> {
   set(a: this): this;
 }
 
-export interface Scalar extends Atom<Scalar>, EVMEncoding<BigNumber> {
+export interface Scalar 
+    extends Atom<Scalar>, 
+      EVMEncoding<BigNumber>, 
+      ToBytes {
   inverse(): this;
 }
 
