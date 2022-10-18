@@ -22,15 +22,16 @@ export class EncryptionBundle<KeyCipherEVM, KeyCipher extends EVMEncoding<KeyCip
     }
 }
 
-export class HGamalSuite<S extends Scalar, P extends Point<S>,C extends Curve<S,P>>  { 
+export class HGamalSuite<S extends Scalar, P extends Point<S>, C extends Curve<S, P>>  {
     curve: C;
 
     constructor(curve: C) {
         this.curve = curve;
     }
+    /// method to encrypt some data to Medusa. 
     // XXX can't make it static because can't access C P or S then...
-    public async onetimeEncrypt(data: Uint8Array, medusa_key: P)
-        : Promise<Result<EncryptionBundle<HGamalEVM, HGamalCipher<S,P>>,hgamal.EncryptionError>> {
+    public async encryptToMedusa(data: Uint8Array, medusa_key: P)
+        : Promise<Result<EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>, hgamal.EncryptionError>> {
         /// first encrypt the data symmetrically
         const key = generateKey();
         const nonce = newNonce();
@@ -42,7 +43,7 @@ export class HGamalSuite<S extends Scalar, P extends Point<S>,C extends Curve<S,
         /// then using the Medusa encryption
         let medusa_cipher = await hgamal.encrypt(this.curve, medusa_key, key);
         if (medusa_cipher.isOk()) {
-            return ok(new EncryptionBundle(fullMessage,medusa_cipher.value));
+            return ok(new EncryptionBundle(fullMessage, medusa_cipher.value));
         } else {
             return err(medusa_cipher.error);
         }
@@ -52,31 +53,34 @@ export class HGamalSuite<S extends Scalar, P extends Point<S>,C extends Curve<S,
     /// The public part of the keypair must be notified to Medusa (via the regular 
     /// way of asking to reencrypt) and the secret part must be kept and given to
     /// "oneTimeDecrypt" when the reencryption arrived.
-    public keyForDecryption(): KeyPair<S,P> {
+    public keyForDecryption(): KeyPair<S, P> {
         return newKeypair(this.curve);
     }
-    public async onetimeDecrypt(
+
+    /// Decrypts a reencryption by medusa of the given bundle, using the 
+    /// secret key derived by keyForDecryption() and given the original ciphertext.
+    public async decryptFromMedusa(
         secret: S,
         medusa_key: P,
-        bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S,P>>,
-        reencryption: hgamal.Ciphertext<S,P>
-        ): Promise<hgamal.DecryptionRes> {
-            /// first decrypt the encryption key from Medusa
-            const r = await hgamal.decryptReencryption(
-                this.curve,
-                secret,
-                medusa_key,
-                reencryption
-            );
-            if (!r.isOk()) {
-                return err(r.error);
-            }
-            let key = r.value;
-            /// then decrypt the original data with this key
-            const nonce = bundle.encrypted_data.slice(0, secretbox.nonceLength);
-            const message = bundle.encrypted_data.slice(secretbox.nonceLength, bundle.encrypted_data.length);
-
-            const decrypted = secretbox.open(message, nonce, key);
-            return ok(decrypted);
+        bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
+        reencryption: hgamal.Ciphertext<S, P>
+    ): Promise<hgamal.DecryptionRes> {
+        /// first decrypt the encryption key from Medusa
+        const r = await hgamal.decryptReencryption(
+            this.curve,
+            secret,
+            medusa_key,
+            reencryption
+        );
+        if (!r.isOk()) {
+            return err(r.error);
         }
+        let key = r.value;
+        /// then decrypt the original data with this key
+        const nonce = bundle.encrypted_data.slice(0, secretbox.nonceLength);
+        const message = bundle.encrypted_data.slice(secretbox.nonceLength, bundle.encrypted_data.length);
+
+        const decrypted = secretbox.open(message, nonce, key);
+        return ok(decrypted);
+    }
 }
