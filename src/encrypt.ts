@@ -1,12 +1,9 @@
-import { KeyPair, newKeypair } from "../src/index";
-import { Scalar, Point, Curve } from "../src/algebra";
+import { KeyPair, newKeypair } from "./index";
+import { Scalar, Point, Curve } from "./algebra";
 import { ok, err, Result } from "neverthrow";
-import { curve, G1 } from "../src/bn254";
-import {
-  Ciphertext as HGamalCipher,
-  EVMCipher as HGamalEVM,
-} from "../src/hgamal";
-import * as hgamal from "./../src/hgamal";
+import { curve, G1 } from "./bn254";
+import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
+import * as hgamal from "./hgamal";
 import { EVMEncoding } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { encodeBase64, decodeBase64 } from "tweetnacl-util";
