@@ -30,7 +30,7 @@ jobs:
         with:
           version: nightly
 
-      - uses: volta-cli/action@v1
+      - uses: volta-cli/action@v4
 
       - run: npm ci
 
