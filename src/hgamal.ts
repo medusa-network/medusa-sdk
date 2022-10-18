@@ -55,7 +55,7 @@ export function newCiphertext<S extends Scalar, P extends Point<S>>(
 
 const HKDF_SIZE = 32;
 
-export default class EncryptionError extends Error {
+export class EncryptionError extends Error {
   statusCode = 400;
 
   constructor(message: string) {
