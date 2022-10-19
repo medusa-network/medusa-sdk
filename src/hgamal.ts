@@ -14,10 +14,14 @@ import * as dleq from "./dleq";
 export class EVMCipher {
   random: EVMPoint;
   cipher: Uint8Array;
+  // random element on the second base r*G2
+  // used by the DLEQ proof.
+  random2: EVMPoint;
   proof: dleq.EVMProof;
-  constructor(r: EVMPoint, c: Uint8Array, proof: dleq.EVMProof) {
+  constructor(r: EVMPoint, c: Uint8Array, rg2: EVMPoint, proof: dleq.EVMProof) {
     this.random = r;
     this.cipher = c;
+    this.random2 = rg2;
     this.proof = proof;
   }
 }
@@ -26,19 +30,25 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
 {
   random: P;
   cipher: Uint8Array;
+  random2: P;
   proof: dleq.Proof<S>;
-  constructor(r: P, c: Uint8Array, proof: dleq.Proof<S>) {
+  constructor(r: P, c: Uint8Array, rg2: P, proof: dleq.Proof<S>) {
     this.random = r;
     this.cipher = c;
+    this.random2 = rg2;
     this.proof = proof;
   }
 
   static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): Ciphertext<S,P> {
-    return new Ciphertext(c.point(),new Uint8Array(), dleq.Proof.default(c));
+    return new Ciphertext(c.point(),new Uint8Array(), c.point(), dleq.Proof.default(c));
   }
 
   toEvm(): EVMCipher {
-    return new EVMCipher(this.random.toEvm(), this.cipher, this.proof.toEvm());
+    return new EVMCipher(
+        this.random.toEvm(), 
+        this.cipher, 
+        this.random2.toEvm(), 
+        this.proof.toEvm());
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
@@ -78,7 +88,7 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   suite: dleq.DleqSuite<S, P>,
   recipient: P,
   msg: Uint8Array,
-  transcript: Transcript<S>,
+  transcript: Transcript,
 ): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid plaintext size"));
@@ -93,8 +103,12 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   // secret "r" (so it is CCA compliant) and most importantly bind
   // the ciphertext to the transcript. THe transcript can contain
   // for example the address of the smart contract, etc.
-  const proof = dleq.prove(suite,transcript,r);
-  const cipher = new Ciphertext(rg, ciphertext, proof);
+  // -- we need to manually create rg2 here because that dleq proof
+  // is meant to show dleq equality between two points -> so we need to provide
+  // the two points even though the second one is not part of the encryption per se.
+  const rg2 = suite.base2().mul(r);
+  const proof = dleq.prove(suite,transcript,r,rg,rg2);
+  const cipher = new Ciphertext(rg, ciphertext, rg2, proof);
   return ok(cipher);
 }
 export type DecryptionRes = Result<Uint8Array, EncryptionError>;
@@ -106,12 +120,14 @@ export async function decryptReencryption<
   priv: S,
   proxyPub: P,
   ci: Ciphertext<S, P>,
-  transcript: Transcript<S>
+  transcript: Transcript
 ): Promise<DecryptionRes> {
   if (ci.cipher.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid cipher size"));
   }
-  dleq.verify(suite,transcript,ci.random
+  if (!dleq.verify(suite,transcript,ci.random,ci.random2,ci.proof)) {
+    return err(new EncryptionError("invalid dleq proof - duplicate attempt?"))
+  } 
   // P=pG proxy public key
   // B=bG recipient public key
   // input is
@@ -120,9 +136,8 @@ export async function decryptReencryption<
   // to decrypt, compute
   // p(rG + B) - bP = prG + pbG - bpG = prG = rP
   // then decrypt: H(rP)^m
-  const negShared = c.point().set(proxyPub).mul(priv).neg();
+  const negShared = suite.point().set(proxyPub).mul(priv).neg();
   const shared = negShared.add(ci.random);
-  console.log("DECRYPT SHARED KEY -> ", shared.toEvm());
   const xorkey = await sharedKey(shared);
   const plain = xor(xorkey, ci.cipher);
   return ok(plain);

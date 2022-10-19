@@ -8,19 +8,43 @@ export interface ToBytes {
     serialize(): Uint8Array;
 }
 
-export interface Transcript<S extends Scalar>{
-    challengeFrom<T extends ToBytes>
+export interface Transcript{
+    challengeFrom<S extends Scalar, T extends ToBytes>
         (elements : T[], into: S): S;
+    append<T extends ToBytes>(e: T | Uint8Array): this;
+    challenge<S extends Scalar>(into: S): S;
 };
 
-export class ShaTranscript<S extends Scalar> {
-    challengeFrom<T extends ToBytes>(
-        elements: T[], into: S): S {
-        let hasher = new sha256.Hash();
-        for (let e of elements) {
-            hasher.update(e.serialize()); 
+export class ShaTranscript<S extends Scalar> implements Transcript{
+
+    state: sha256.Hash;
+    constructor() {
+        this.state = new sha256.Hash();
+    }
+    challengeFrom<S extends Scalar, T extends ToBytes>(elements: T[], into: S): S {
+        return ShaTranscript.challengeFrom(elements,into);
+    }
+    append<T extends ToBytes>(e: T | Uint8Array): this {
+        if (e instanceof Uint8Array) {
+            this.state = this.state.update(e);
+        } else {
+            this.state = this.state.update(e.serialize());
         }
-        const result = hasher.digest();
+        return this;
+    }
+    challenge<S extends Scalar>(into: S): S {
+        const result = this.state.digest();
         return into.fromBytes(result);
+    }
+
+
+    static challengeFrom<S extends Scalar, T extends ToBytes>(
+        elements: T[], into: S): S {
+        let hasher = new ShaTranscript();
+        for (let e of elements) {
+            console.log("elemnt: ",e, " but all ",elements);
+            hasher = hasher.append(e);
+        }
+        return hasher.challenge(into);
     }
 }

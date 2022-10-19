@@ -7,6 +7,7 @@ import { EVMEncoding } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { encodeBase64, decodeBase64 } from "tweetnacl-util";
 import { DleqSuite } from "./dleq";
+import { ShaTranscript, Transcript } from "./transcript";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
@@ -40,7 +41,8 @@ export class HGamalSuite<
   // XXX can't make it static because can't access C P or S then...
   public async encryptToMedusa(
     data: Uint8Array,
-    medusaKey: P
+    medusaKey: P,
+    label: Uint8Array,
   ): Promise<
     Result<
       EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
@@ -55,8 +57,11 @@ export class HGamalSuite<
     fullMessage.set(nonce);
     fullMessage.set(box, nonce.length);
 
+    // create a transcript and put the label inside, needed for DLEQ proof
+    const transcript= new ShaTranscript();
+    transcript.append(label);
     /// then using the Medusa encryption
-    const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key);
+    const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key, transcript);
     if (medusaCipher.isOk()) {
       return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
     } else {
@@ -78,14 +83,18 @@ export class HGamalSuite<
     secret: S,
     medusaKey: P,
     bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
-    reencryption: hgamal.Ciphertext<S, P>
+    reencryption: hgamal.Ciphertext<S, P>,
+    label: Uint8Array,
   ): Promise<hgamal.DecryptionRes> {
+    const transcript = new ShaTranscript();
+    transcript.append(label);
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
       this.suite,
       secret,
       medusaKey,
-      reencryption
+      reencryption,
+      transcript,
     );
     if (!r.isOk()) {
       return err(r.error);
