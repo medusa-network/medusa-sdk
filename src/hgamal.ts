@@ -32,6 +32,7 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   cipher: Uint8Array;
   random2: P;
   proof: dleq.Proof<S>;
+
   constructor(r: P, c: Uint8Array, rg2: P, proof: dleq.Proof<S>) {
     this.random = r;
     this.cipher = c;
@@ -64,6 +65,38 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
 }
 
 
+/// Ciphertext that Medusa emits to the smart contract
+export class MedusaReencryption<S extends Scalar, P extends Point<S>> 
+  implements EVMEncoding<EVMMedusaReencryption> {
+  random: P;
+
+  constructor(r: P) {
+    this.random = r;
+  }
+
+  static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): MedusaReencryption<S,P> {
+    return new MedusaReencryption(c.point());
+  }
+
+  toEvm(): EVMMedusaReencryption {
+    throw new Error("This method should never be called?");
+  }
+  
+  fromEvm(t: EVMMedusaReencryption): EncodingRes<this> {
+    return this.random.fromEvm(t.random).andThen((v) => {
+      this.random = v;
+      return ok(this);
+    });
+  }
+
+}
+
+export class EVMMedusaReencryption {
+  random: EVMPoint;
+  constructor(r: EVMPoint) {
+    this.random = r; 
+  }
+}
 
 const HKDF_SIZE = 32;
 
@@ -119,15 +152,15 @@ export async function decryptReencryption<
   suite: dleq.DleqSuite<S, P>,
   priv: S,
   proxyPub: P,
-  ci: Ciphertext<S, P>,
-  transcript: Transcript
+  original: Ciphertext<S, P>,
+  reencrypted: MedusaReencryption<S,P>,
 ): Promise<DecryptionRes> {
-  if (ci.cipher.length !== HKDF_SIZE) {
+  // XXX not really needed since smart contract does it
+  // TODO place this when we read all submitted ciperthext, 
+  // we must verify if they are legit
+  if (original.cipher.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid cipher size"));
   }
-  if (!dleq.verify(suite,transcript,ci.random,ci.random2,ci.proof)) {
-    return err(new EncryptionError("invalid dleq proof - duplicate attempt?"))
-  } 
   // P=pG proxy public key
   // B=bG recipient public key
   // input is
@@ -137,9 +170,9 @@ export async function decryptReencryption<
   // p(rG + B) - bP = prG + pbG - bpG = prG = rP
   // then decrypt: H(rP)^m
   const negShared = suite.point().set(proxyPub).mul(priv).neg();
-  const shared = negShared.add(ci.random);
+  const shared = negShared.add(reencrypted.random);
   const xorkey = await sharedKey(shared);
-  const plain = xor(xorkey, ci.cipher);
+  const plain = xor(xorkey, original.cipher);
   return ok(plain);
 }
 
