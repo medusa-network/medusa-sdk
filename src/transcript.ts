@@ -15,7 +15,7 @@ export interface Transcript{
     challenge<S extends Scalar>(into: S): S;
 };
 
-export class ShaTranscript<S extends Scalar> implements Transcript{
+export class ShaTranscript implements Transcript{
 
     state: sha256.Hash;
     constructor() {
@@ -38,6 +38,7 @@ export class ShaTranscript<S extends Scalar> implements Transcript{
     }
 
 
+    /// challenge from an array directly
     static challengeFrom<S extends Scalar, T extends ToBytes>(
         elements: T[], into: S): S {
         let hasher = new ShaTranscript();

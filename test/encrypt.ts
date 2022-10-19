@@ -17,7 +17,7 @@ describe("medusa encryption", () => {
     await init();
   });
 
-  it("can decrypt large message", async () => {
+  it("full scheme", async () => {
     const proxy = newKeypair(curve);
     const suite = new HGamalSuite(curve);
     const bob = suite.keyForDecryption();
@@ -39,7 +39,6 @@ describe("medusa encryption", () => {
       proxy.pubkey,
       bundle,
       reencryption,
-      label,
     );
     assert.ok(m.isOk());
     const found = m._unsafeUnwrap();

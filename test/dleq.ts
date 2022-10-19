@@ -10,12 +10,11 @@ describe("dleq proof", () => {
         await init();
     });
 
-    it("basic checks", () => {
+    it("proof verification", () => {
         let secret = suite.scalar().random();
         let rg1 = suite.base1().mul(secret);
         let rg2 = suite.base2().mul(secret);
         let prover_transcript = new ShaTranscript();
-        console.log("test dleq before: rg1",rg1, "rg2",rg2);
         let proof = prove(suite, prover_transcript, secret,rg1,rg2);
         let verifier_transcript = new ShaTranscript();
         let valid = verify(suite, verifier_transcript, rg1, rg2, proof);

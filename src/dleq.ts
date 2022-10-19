@@ -50,6 +50,7 @@ export type EVMProof = {
     e: BigNumber;
 }
 
+/// creates a DLEQ proof between r*G1 and r*G2
 export function prove<S extends Scalar, 
         P extends Point<S>,
         Suite extends DleqSuite<S,P>,

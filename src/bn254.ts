@@ -9,6 +9,7 @@ import { ToBytes } from "../src/transcript";
 import { DleqSuite } from "./dleq";
 import { G2 } from "mcl-wasm";
 
+/// Initiatlization of the suite and some constants
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);

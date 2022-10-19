@@ -9,6 +9,7 @@ import { hexlify, arrayify } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
 import { HGamalSuite } from "../src/encrypt";
 import { ShaTranscript } from "../src/transcript";
+import { receiveMessageOnPort } from "worker_threads";
 
 export function reencrypt<S extends Scalar, P extends Point<S>>(
   c: Curve<S, P>,
@@ -23,7 +24,8 @@ export function reencrypt<S extends Scalar, P extends Point<S>>(
   // prG + pB = p(rG + B)
   // see hgamal script for more details
   const random = c.point().set(recipient).add(cipher.random).mul(kp.secret);
-  return new MedusaReencryption(random);
+  const reenc =  new MedusaReencryption(random);
+  return reenc;
 }
 
 export function pointFromXY(x: string, y: string): G1 {
@@ -54,7 +56,7 @@ describe("hgamal", () => {
     await init();
   });
 
-  it("decryption of reencryption", async () => {
+  it("decryption of medusa reencryption", async () => {
     const proxy = newKeypair(suite);
     const bob = newKeypair(suite);
     const msgStr = "Hello Bob";

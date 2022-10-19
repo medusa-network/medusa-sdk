@@ -1,6 +1,6 @@
 import { Result } from "neverthrow";
 
-// from https://bobbyhadz.com/blog/typescript-extend-error-class
+// taken from https://bobbyhadz.com/blog/typescript-extend-error-class
 export class EncodingError extends Error {
   statusCode = 400;
 

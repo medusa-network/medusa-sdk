@@ -2,7 +2,7 @@ import assert from "assert";
 
 import { onlyZero } from "../src/utils";
 
-describe("utils testing", () => {
+describe("utils module", () => {
   it("only zero", () => {
     const b = new Uint8Array([0, 0, 0]);
     assert.ok(onlyZero(b));

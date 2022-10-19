@@ -37,7 +37,7 @@ export class HGamalSuite<
     this.suite = suite;
   }
 
-  /// method to encrypt some data to Medusa.
+  /// method to encrypt data to Medusa.
   // XXX can't make it static because can't access C P or S then...
   public async encryptToMedusa(
     data: Uint8Array,
@@ -82,19 +82,18 @@ export class HGamalSuite<
   public async decryptFromMedusa(
     secret: S,
     medusaKey: P,
+    // original ciphertext of the data and more importantly the key
     bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
-    reencryption: hgamal.Ciphertext<S, P>,
-    label: Uint8Array,
+    // the reencryption of the key by the medusa network
+    reencryption: hgamal.MedusaReencryption<S, P>,
   ): Promise<hgamal.DecryptionRes> {
-    const transcript = new ShaTranscript();
-    transcript.append(label);
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
       this.suite,
       secret,
       medusaKey,
-      reencryption,
-      transcript,
+      bundle.encryptedKey, // original cipher of the key
+      reencryption, // reencryption done by medusa
     );
     if (!r.isOk()) {
       return err(r.error);
