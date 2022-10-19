@@ -55,7 +55,7 @@ export function prove<S extends Scalar,
         Suite extends DleqSuite<S,P>,
         T extends Transcript>(suite: Suite, tr: T, 
             // rg1= r*G1, rg2 = r*G2
-            secret: S,rg1: P, rg2: P): Proof<S> {
+            secret: S, rg1: P, rg2: P): Proof<S> {
             let t = suite.scalar().random();
             // w1 = t*G1, w2 = t*G2
             let w1 = suite.base1().mul(t);
