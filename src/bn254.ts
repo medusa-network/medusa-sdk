@@ -6,17 +6,23 @@ import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
 import { ToBytes } from "../src/transcript";
+import { DleqSuite } from "./dleq";
+import { G2 } from "mcl-wasm";
 
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);
+  curve = new Bn254Curve(new G1().fromEvm({
+    x: BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
+    y: BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
+  })._unsafeUnwrap());
 }
 
-export class Fr 
-    implements Atom<Fr>, 
-      Scalar, 
-      EVMEncoding<BigNumber>,
-      ToBytes {
+export class Fr
+  implements Atom<Fr>,
+  Scalar,
+  EVMEncoding<BigNumber>,
+  ToBytes {
   f: mcl.Fr;
   constructor() {
     this.f = new mcl.Fr();
@@ -194,8 +200,12 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
     return this.fromXY(x, y);
   }
 }
+class Bn254Curve implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
+  _base2: G1;
 
-class Bn254Curve implements Curve<Fr, G1> {
+  constructor(base2: G1) {
+    this._base2 = base2;
+  }
   scalar(): Fr {
     return new Fr();
   }
@@ -203,7 +213,15 @@ class Bn254Curve implements Curve<Fr, G1> {
   point(): G1 {
     return new G1();
   }
+
+  base1(): G1 {
+    return new G1().one();
+  }
+
+  base2(): G1 {
+    return new G1().set(this._base2);
+  }
 }
 
-const curve = new Bn254Curve();
+let curve: Bn254Curve;
 export { curve };

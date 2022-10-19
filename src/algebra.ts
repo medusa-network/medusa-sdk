@@ -44,7 +44,7 @@ export interface Point<S extends Scalar>
 // Unfortunately we can not have static methods on scalar
 // and points interface so we have to make them available via
 // this third type curve.
-export interface Curve<S extends Scalar, P extends Point<Scalar>> {
+export interface Curve<S extends Scalar, P extends Point<S>> {
   scalar(): S;
   point(): P;
 }
