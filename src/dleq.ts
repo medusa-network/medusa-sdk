@@ -1,4 +1,7 @@
+import { BigNumber } from "ethers";
+import { ok, err } from "neverthrow";
 import { Point, Scalar, Curve } from "./algebra";
+import { EncodingRes, EVMEncoding } from "./encoding";
 import { Transcript } from "./transcript";
 
 /// Suite needed by the dleq module: must use two distinct base where we don't know the 
@@ -7,17 +10,50 @@ export interface DleqSuite<S extends Scalar, P extends Point<S>> extends Curve<S
     base1(): P;
     base2(): P;
 }
-export interface Proof<S extends Scalar> {
+export class Proof<S extends Scalar> implements EVMEncoding<EVMProof> {
     // f = t + e*s
     f: S;
     // challenge e = H( ... )
     e: S;
+
+    constructor(f: S, e: S) {
+        this.f = f;
+        this.e = e;
+    }
+
+    static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): Proof<S> {
+        return new Proof(c.scalar(),c.scalar());
+    }
+
+    fromEvm(t: EVMProof): EncodingRes<this> {
+        return this.f.fromEvm(t.f)
+            .andThen((f) => {
+                this.f = f;
+                return this.e.fromEvm(t.e)
+            }).andThen((e) => { 
+                this.e = e;
+                return ok(this);
+            });
+    }
+
+    toEvm(): EVMProof {
+       return {
+            f: this.f.toEvm(), 
+            e: this.e.toEvm(),
+       };
+    }
+}
+
+/// The EVM encoding of Proof
+export type EVMProof = {
+    f: BigNumber;
+    e: BigNumber;
 }
 
 export function prove<S extends Scalar, 
         P extends Point<S>,
         Suite extends DleqSuite<S,P>,
-        T extends Transcript<S>>(suite: Suite, tr: T, secret: S) {
+        T extends Transcript<S>>(suite: Suite, tr: T, secret: S): Proof<S> {
             // rg1= r*G1, rg2 = r*G2
             let rg1 = suite.base1().mul(secret);
             let rg2 = suite.base2().mul(secret);
@@ -28,11 +64,7 @@ export function prove<S extends Scalar,
             let challenge :S = tr.challengeFrom([rg1,rg2,w1,w2],suite.scalar());
             // f = t - challenge * r
             let f = t.add(suite.scalar().set(challenge).mul(secret).neg());
-            return { 
-                f: f,
-                e: challenge,
-            };
-
+            return new Proof(f,challenge);
 }
 
 export function verify<S extends Scalar,

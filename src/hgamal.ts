@@ -8,13 +8,17 @@ import { EncodingRes, EVMEncoding } from "./encoding";
 import hkdf from "js-crypto-hkdf";
 import { arrayify } from "ethers/lib/utils";
 import { bnToArray } from "./utils";
+import { Transcript } from "./transcript";
+import * as dleq from "./dleq";
 
 export class EVMCipher {
   random: EVMPoint;
   cipher: Uint8Array;
-  constructor(r: EVMPoint, c: Uint8Array) {
+  proof: dleq.EVMProof;
+  constructor(r: EVMPoint, c: Uint8Array, proof: dleq.EVMProof) {
     this.random = r;
     this.cipher = c;
+    this.proof = proof;
   }
 }
 export class Ciphertext<S extends Scalar, P extends Point<S>>
@@ -22,36 +26,34 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
 {
   random: P;
   cipher: Uint8Array;
-  constructor(r: P, c: Uint8Array) {
+  proof: dleq.Proof<S>;
+  constructor(r: P, c: Uint8Array, proof: dleq.Proof<S>) {
     this.random = r;
     this.cipher = c;
+    this.proof = proof;
+  }
+
+  static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): Ciphertext<S,P> {
+    return new Ciphertext(c.point(),new Uint8Array(), dleq.Proof.default(c));
   }
 
   toEvm(): EVMCipher {
-    return new EVMCipher(this.random.toEvm(), this.cipher);
+    return new EVMCipher(this.random.toEvm(), this.cipher, this.proof.toEvm());
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
     this.cipher = e.cipher;
-    const r = this.random.fromEvm(e.random);
-    if (r.isErr()) {
-      return err(r.error);
-    }
-    return ok(this);
+    return this.random.fromEvm(e.random).andThen((r) => {
+      this.random = r;
+      return this.proof.fromEvm(e.proof);
+    }).andThen((proof) => {
+      this.proof = proof;
+      return ok(this);
+    });
   }
 }
 
-// I'd like to do this:
-// Ciphertext.new(curve).from_evm(evm)
-// But that requires me to specify Scalar type (because of Curve) in Ciphertext
-// And unfortunately we can't access types from static declaration
-// We can't overload constructor as well so I'm using separate function
-// newCiphertext(curve).from_evm(evm)
-export function newCiphertext<S extends Scalar, P extends Point<S>>(
-  c: Curve<S, P>
-): Ciphertext<S, P> {
-  return new Ciphertext(c.point(), new Uint8Array(1));
-}
+
 
 const HKDF_SIZE = 32;
 
@@ -73,20 +75,26 @@ export type EncryptionRes<S extends Scalar, P extends Point<S>> = Result<
   EncryptionError
 >;
 export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
-  c: Curve<S, P>,
+  suite: dleq.DleqSuite<S, P>,
   recipient: P,
-  msg: Uint8Array
+  msg: Uint8Array,
+  transcript: Transcript<S>,
 ): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid plaintext size"));
   }
   // { rG, H(rP) ^ m } where P = pG public key recipient
-  const fr = c.scalar().random();
-  const r = c.point().one().mul(fr);
-  const shared = c.point().set(recipient).mul(fr);
+  const r = suite.scalar().random();
+  const rg = suite.point().one().mul(r);
+  const shared = suite.point().set(recipient).mul(r);
   const xorkey = await sharedKey(shared);
   const ciphertext = xor(xorkey, msg);
-  const cipher = new Ciphertext(r, ciphertext);
+  // make the dleq proof to prove encryptor has the corresponding
+  // secret "r" (so it is CCA compliant) and most importantly bind
+  // the ciphertext to the transcript. THe transcript can contain
+  // for example the address of the smart contract, etc.
+  const proof = dleq.prove(suite,transcript,r);
+  const cipher = new Ciphertext(rg, ciphertext, proof);
   return ok(cipher);
 }
 export type DecryptionRes = Result<Uint8Array, EncryptionError>;
@@ -94,14 +102,16 @@ export async function decryptReencryption<
   S extends SecretKey,
   P extends PublicKey<S>
 >(
-  c: Curve<S, P>,
+  suite: dleq.DleqSuite<S, P>,
   priv: S,
   proxyPub: P,
-  ci: Ciphertext<S, P>
+  ci: Ciphertext<S, P>,
+  transcript: Transcript<S>
 ): Promise<DecryptionRes> {
   if (ci.cipher.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid cipher size"));
   }
+  dleq.verify(suite,transcript,ci.random
   // P=pG proxy public key
   // B=bG recipient public key
   // input is

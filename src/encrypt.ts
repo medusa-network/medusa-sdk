@@ -1,12 +1,12 @@
 import { KeyPair, newKeypair } from "./index";
 import { Scalar, Point, Curve } from "./algebra";
 import { ok, err, Result } from "neverthrow";
-import { curve, G1 } from "./bn254";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
 import { EVMEncoding } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { encodeBase64, decodeBase64 } from "tweetnacl-util";
+import { DleqSuite } from "./dleq";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
@@ -28,12 +28,12 @@ export class EncryptionBundle<
 export class HGamalSuite<
   S extends Scalar,
   P extends Point<S>,
-  C extends Curve<S, P>
+  Suite extends DleqSuite<S, P>
 > {
-  curve: C;
+  suite: Suite;
 
-  constructor(curve: C) {
-    this.curve = curve;
+  constructor(suite: Suite) {
+    this.suite = suite;
   }
 
   /// method to encrypt some data to Medusa.
@@ -56,7 +56,7 @@ export class HGamalSuite<
     fullMessage.set(box, nonce.length);
 
     /// then using the Medusa encryption
-    const medusaCipher = await hgamal.encrypt(this.curve, medusaKey, key);
+    const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key);
     if (medusaCipher.isOk()) {
       return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
     } else {
@@ -69,7 +69,7 @@ export class HGamalSuite<
   /// way of asking to reencrypt) and the secret part must be kept and given to
   /// "oneTimeDecrypt" when the reencryption arrived.
   public keyForDecryption(): KeyPair<S, P> {
-    return newKeypair(this.curve);
+    return newKeypair(this.suite);
   }
 
   /// Decrypts a reencryption by medusa of the given bundle, using the
@@ -82,7 +82,7 @@ export class HGamalSuite<
   ): Promise<hgamal.DecryptionRes> {
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
-      this.curve,
+      this.suite,
       secret,
       medusaKey,
       reencryption

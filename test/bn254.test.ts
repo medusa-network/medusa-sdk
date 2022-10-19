@@ -1,5 +1,5 @@
 import assert from "assert";
-import { init, curve } from "../src/bn254";
+import { init, suite as curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify } from "ethers/lib/utils";
 

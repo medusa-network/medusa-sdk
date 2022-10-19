@@ -21,7 +21,6 @@ export class ShaTranscript<S extends Scalar> {
             hasher.update(e.serialize()); 
         }
         const result = hasher.digest();
-        console.log("-> hash result len = ",result.length, " => ",result);
         return into.fromBytes(result);
     }
 }

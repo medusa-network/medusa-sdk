@@ -12,7 +12,7 @@ import { G2 } from "mcl-wasm";
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);
-  curve = new Bn254Curve(new G1().fromEvm({
+  suite = new Bn254Suite(new G1().fromEvm({
     x: BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
     y: BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
   })._unsafeUnwrap());
@@ -200,7 +200,7 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
     return this.fromXY(x, y);
   }
 }
-class Bn254Curve implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
+class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   _base2: G1;
 
   constructor(base2: G1) {
@@ -223,5 +223,5 @@ class Bn254Curve implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   }
 }
 
-let curve: Bn254Curve;
-export { curve };
+let suite: Bn254Suite;
+export { suite };
