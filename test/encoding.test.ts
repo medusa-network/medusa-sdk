@@ -2,8 +2,8 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Contract, Signer } from "ethers";
-import { IEncryptionOracle, Playground__factory } from "../typechain";
-import { init, curve } from "../src/bn254";
+import { Playground__factory } from "../typechain";
+import { init, suite as curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
