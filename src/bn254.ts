@@ -71,6 +71,11 @@ export class Fr
     return ok(this);
   }
 
+  fromBytes(array: Uint8Array): this {
+    this.f.setLittleEndianMod(array);
+    return this;
+  }
+
   set(e: Fr): this {
     const arr = e.f.serialize();
     this.deserialize(arr)._unsafeUnwrap();
