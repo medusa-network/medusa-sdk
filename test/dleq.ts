@@ -32,6 +32,6 @@ describe("dleq proof", () => {
 
     it("pass solidity verification", async () => {
         const [owner] = await ethers.getSigners();
-        const test = await Playground__factory.
+        const test = await new Playground__factory(owner).deploy();
     });
 });
