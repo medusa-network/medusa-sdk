@@ -8,21 +8,24 @@ export interface ToBytes {
     serialize(): Uint8Array;
 }
 
-export interface Transcript{
+export interface Transcript {
     challengeFrom<S extends Scalar, T extends ToBytes>
-        (elements : T[], into: S): S;
+        (elements: T[], into: S): S;
     append<T extends ToBytes>(e: T | Uint8Array): this;
     challenge<S extends Scalar>(into: S): S;
 };
 
-export class ShaTranscript implements Transcript{
+export class ShaTranscript implements Transcript {
 
     state: sha256.Hash;
     constructor() {
         this.state = new sha256.Hash();
     }
+    /// Warning: Do not mix append + challenge  and challengeFrom -> the latter uses
+    /// a new transcript.
+    /// TODO potentially remove this.
     challengeFrom<S extends Scalar, T extends ToBytes>(elements: T[], into: S): S {
-        return ShaTranscript.challengeFrom(elements,into);
+        return ShaTranscript.challengeFrom(elements, into);
     }
     append<T extends ToBytes>(e: T | Uint8Array): this {
         if (e instanceof Uint8Array) {
@@ -43,7 +46,7 @@ export class ShaTranscript implements Transcript{
         elements: T[], into: S): S {
         let hasher = new ShaTranscript();
         for (let e of elements) {
-            console.log("elemnt: ",e, " but all ",elements);
+            console.log("elemnt: ", e, " but all ", elements);
             hasher = hasher.append(e);
         }
         return hasher.challenge(into);

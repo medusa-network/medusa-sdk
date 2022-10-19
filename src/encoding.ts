@@ -16,6 +16,10 @@ export class EncodingError extends Error {
 
 export type EncodingRes<T> = Result<T, EncodingError>;
 
+export interface EVMSerialization {
+  toEVMBytes(): Uint8Array;
+}
+
 export interface EVMEncoding<T> {
   toEvm(): T;
   fromEvm(t: T): EncodingRes<this>;

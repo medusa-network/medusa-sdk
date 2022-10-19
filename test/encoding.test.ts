@@ -8,6 +8,7 @@ import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
 import assert from "assert";
+import { EVMG1Point } from "../src/algebra";
 
 describe("Test Encoding ", function () {
   before(async () => {
@@ -41,7 +42,7 @@ describe("Test Encoding ", function () {
     const event = logs[0].args;
     expect(event.id).to.be.eq(1);
     expect(event.cipher).to.be.eq(cipher);
-    const r = curve.point().fromEvm({ x: event.rx, y: event.ry });
+    const r = curve.point().fromEvm(new EVMG1Point(event.rx, event.ry));
     expect(r.isOk()).to.be.true;
     expect(r._unsafeUnwrap().equal(random)).to.be.true;
   });
@@ -55,7 +56,7 @@ describe("Test Encoding ", function () {
     );
 
     // Note: Errors if values are not deserialized correctly to 32-bytes
-    curve.point().fromEvm({ x, y });
+    curve.point().fromEvm(new EVMG1Point(x, y));
   });
 
   it("decode g1point", async () => {

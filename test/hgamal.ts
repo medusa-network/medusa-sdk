@@ -2,7 +2,7 @@ import * as hgamal from "../src/hgamal";
 import { BigNumber } from "ethers";
 import { newKeypair, KeyPair } from "../src";
 import { init, suite, G1 } from "../src/bn254";
-import { Scalar, Point, Curve } from "../src/algebra";
+import { Scalar, Point, Curve, EVMG1Point } from "../src/algebra";
 import * as dleq from "../src/dleq";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";
@@ -24,7 +24,7 @@ export function reencrypt<S extends Scalar, P extends Point<S>>(
   // prG + pB = p(rG + B)
   // see hgamal script for more details
   const random = c.point().set(recipient).add(cipher.random).mul(kp.secret);
-  const reenc =  new hgamal.MedusaReencryption(random);
+  const reenc = new hgamal.MedusaReencryption(random);
   return reenc;
 }
 
@@ -35,7 +35,7 @@ export function pointFromXY(x: string, y: string): G1 {
   // to give it in big endian form.
   const xa = arrayToBn(arrayify(x), true);
   const ya = arrayToBn(arrayify(y), true);
-  const p = suite.point().fromEvm({ x: xa, y: ya });
+  const p = suite.point().fromEvm(new EVMG1Point(xa, ya));
   assert(p.isOk());
   return p._unsafeUnwrap();
 }
@@ -61,7 +61,7 @@ describe("hgamal", () => {
     const bob = newKeypair(suite);
     const msgStr = "Hello Bob";
     const msgBuff = new TextEncoder().encode(msgStr.padEnd(32, "\0"));
-    const c = await hgamal.encrypt(suite, proxy.pubkey, msgBuff,transcript());
+    const c = await hgamal.encrypt(suite, proxy.pubkey, msgBuff, transcript());
     assert.ok(c.isOk());
     const ciphertext = c._unsafeUnwrap();
     const reencryption = reencrypt(suite, proxy, bob.pubkey, ciphertext);
@@ -181,7 +181,7 @@ describe("hgamal", () => {
     // Then check if reencrypting yourself gives expected result
     const random = pointFromXY(data.cipher.random.x, data.cipher.random.y);
     const cipher = new hgamal.Ciphertext(
-      random, 
+      random,
       arrayify(data.cipher.cipher),
       /// give random dleq elements because it's not what we are interested in here
       suite.point(),

@@ -61,7 +61,7 @@ export function prove<S extends Scalar,
             // w1 = t*G1, w2 = t*G2
             let w1 = suite.base1().mul(t);
             let w2 = suite.base2().mul(t);
-            let challenge :S = tr.challengeFrom([rg1,rg2,w1,w2],suite.scalar());
+            let challenge :S = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
             // f = t - challenge * r
             let f = t.add(suite.scalar().set(challenge).mul(secret).neg());
             return new Proof(f,challenge);
@@ -76,7 +76,7 @@ export function verify<S extends Scalar,
         let w1 = suite.base1().mul(proof.f).add(suite.point().set(rg1).mul(proof.e)); 
         // w2 = f*G2 + rG2 * e
         let w2  = suite.base2().mul(proof.f).add(suite.point().set(rg2).mul(proof.e)); 
-        let challenge :S  = tr.challengeFrom([rg1,rg2,w1,w2],suite.scalar());
+        let challenge :S  = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
         if (challenge.equal(proof.e)) {
             return true;
         }

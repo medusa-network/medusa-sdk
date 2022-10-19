@@ -5,7 +5,6 @@ import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
 import { EVMEncoding } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
-import { encodeBase64, decodeBase64 } from "tweetnacl-util";
 import { DleqSuite } from "./dleq";
 import { ShaTranscript, Transcript } from "./transcript";
 

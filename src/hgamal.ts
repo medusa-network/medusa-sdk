@@ -1,24 +1,21 @@
-import { Curve, EVMPoint, Point, Scalar } from "./algebra";
-import { KeyPair, PublicKey, SecretKey } from "./index";
+import { Curve, EVMG1Point, Point, Scalar } from "./algebra";
+import { PublicKey, SecretKey } from "./index";
 import { ok, err, Result } from "neverthrow";
 import * as crypto from "crypto";
 import assert from "assert";
-import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding } from "./encoding";
-import hkdf from "js-crypto-hkdf";
-import { arrayify } from "ethers/lib/utils";
 import { bnToArray } from "./utils";
 import { Transcript } from "./transcript";
 import * as dleq from "./dleq";
 
 export class EVMCipher {
-  random: EVMPoint;
+  random: EVMG1Point;
   cipher: Uint8Array;
   // random element on the second base r*G2
   // used by the DLEQ proof.
-  random2: EVMPoint;
+  random2: EVMG1Point;
   proof: dleq.EVMProof;
-  constructor(r: EVMPoint, c: Uint8Array, rg2: EVMPoint, proof: dleq.EVMProof) {
+  constructor(r: EVMG1Point, c: Uint8Array, rg2: EVMG1Point, proof: dleq.EVMProof) {
     this.random = r;
     this.cipher = c;
     this.random2 = rg2;
@@ -40,16 +37,16 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
     this.proof = proof;
   }
 
-  static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): Ciphertext<S,P> {
-    return new Ciphertext(c.point(),new Uint8Array(), c.point(), dleq.Proof.default(c));
+  static default<S extends Scalar, P extends Point<S>>(c: Curve<S, P>): Ciphertext<S, P> {
+    return new Ciphertext(c.point(), new Uint8Array(), c.point(), dleq.Proof.default(c));
   }
 
   toEvm(): EVMCipher {
     return new EVMCipher(
-        this.random.toEvm(), 
-        this.cipher, 
-        this.random2.toEvm(), 
-        this.proof.toEvm());
+      this.random.toEvm(),
+      this.cipher,
+      this.random2.toEvm(),
+      this.proof.toEvm());
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
@@ -66,7 +63,7 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
 
 
 /// Ciphertext that Medusa emits to the smart contract
-export class MedusaReencryption<S extends Scalar, P extends Point<S>> 
+export class MedusaReencryption<S extends Scalar, P extends Point<S>>
   implements EVMEncoding<EVMMedusaReencryption> {
   random: P;
 
@@ -74,14 +71,14 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
     this.random = r;
   }
 
-  static default<S extends Scalar, P extends Point<S>>(c: Curve<S,P>): MedusaReencryption<S,P> {
+  static default<S extends Scalar, P extends Point<S>>(c: Curve<S, P>): MedusaReencryption<S, P> {
     return new MedusaReencryption(c.point());
   }
 
   toEvm(): EVMMedusaReencryption {
     throw new Error("This method should never be called?");
   }
-  
+
   fromEvm(t: EVMMedusaReencryption): EncodingRes<this> {
     return this.random.fromEvm(t.random).andThen((v) => {
       this.random = v;
@@ -92,9 +89,9 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
 }
 
 export class EVMMedusaReencryption {
-  random: EVMPoint;
-  constructor(r: EVMPoint) {
-    this.random = r; 
+  random: EVMG1Point;
+  constructor(r: EVMG1Point) {
+    this.random = r;
   }
 }
 
@@ -140,7 +137,7 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   // is meant to show dleq equality between two points -> so we need to provide
   // the two points even though the second one is not part of the encryption per se.
   const rg2 = suite.base2().mul(r);
-  const proof = dleq.prove(suite,transcript,r,rg,rg2);
+  const proof = dleq.prove(suite, transcript, r, rg, rg2);
   const cipher = new Ciphertext(rg, ciphertext, rg2, proof);
   return ok(cipher);
 }
@@ -153,7 +150,7 @@ export async function decryptReencryption<
   priv: S,
   proxyPub: P,
   original: Ciphertext<S, P>,
-  reencrypted: MedusaReencryption<S,P>,
+  reencrypted: MedusaReencryption<S, P>,
 ): Promise<DecryptionRes> {
   // XXX not really needed since smart contract does it
   // TODO place this when we read all submitted ciperthext, 

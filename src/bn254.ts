@@ -1,4 +1,4 @@
-import { Curve, Atom, Scalar, Point, EVMPoint } from "./algebra";
+import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
 
 import { EncodingRes, EncodingError, EVMEncoding } from "./encoding";
 import * as mcl from "mcl-wasm";
@@ -13,10 +13,12 @@ import { G2 } from "mcl-wasm";
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
   mcl.setMapToMode(mcl.BN254);
-  suite = new Bn254Suite(new G1().fromEvm({
-    x: BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
-    y: BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
-  })._unsafeUnwrap());
+  suite = new Bn254Suite(new G1().fromEvm(new EVMG1Point(
+    // x
+    BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
+    // y
+    BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
+  ))._unsafeUnwrap());
 }
 
 export class Fr
@@ -99,7 +101,7 @@ export class Fr
   }
 }
 
-export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
+export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ToBytes {
   p: mcl.G1;
   constructor() {
     this.p = new mcl.G1();
@@ -185,17 +187,14 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
     return ok(this);
   }
 
-  toEvm(): EVMPoint {
+  toEvm(): EVMG1Point {
     this.p.normalize();
     const x = BigNumber.from(this.p.getX().serialize().reverse());
     const y = BigNumber.from(this.p.getY().serialize().reverse());
-    return {
-      x: x,
-      y: y,
-    };
+    return new EVMG1Point(x, y);
   }
 
-  fromEvm(p: EVMPoint): EncodingRes<this> {
+  fromEvm(p: EVMG1Point): EncodingRes<this> {
     const x = bnToArray(p.x, true, 32);
     const y = bnToArray(p.y, true, 32);
     return this.fromXY(x, y);

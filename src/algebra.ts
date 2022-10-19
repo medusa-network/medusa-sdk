@@ -1,6 +1,7 @@
 import { BigNumber } from "ethers";
-import { EncodingRes, EVMEncoding } from "./encoding";
+import { EncodingRes, EVMEncoding, EVMSerialization } from "./encoding";
 import { ToBytes } from "./transcript";
+import { bnToArray } from "./utils";
 
 export interface Atom<RHS> {
   add(e: this): this;
@@ -15,10 +16,10 @@ export interface Atom<RHS> {
   set(a: this): this;
 }
 
-export interface Scalar 
-    extends Atom<Scalar>, 
-      EVMEncoding<BigNumber>, 
-      ToBytes {
+export interface Scalar
+  extends Atom<Scalar>,
+  EVMEncoding<BigNumber>,
+  ToBytes {
   inverse(): this;
   /// takes an array of bytes, modulo it to the
   /// the scalar field and return the scalar.
@@ -29,14 +30,26 @@ export interface Scalar
   fromBytes(array: Uint8Array): this;
 }
 
-export interface EVMPoint {
+export class EVMG1Point implements EVMSerialization {
   x: BigNumber;
   y: BigNumber;
+  constructor(x: BigNumber, y: BigNumber) {
+    this.x = x;
+    this.y = y;
+  }
+  toEVMBytes(): Uint8Array {
+    let xarray = bnToArray(this.x, false, 32);
+    let yarray = bnToArray(this.y, false, 32);
+    let array = new Uint8Array(xarray.length + yarray.length);
+    array.set(xarray);
+    array.set(yarray, xarray.length);
+    return array;
+  }
 }
 
 export interface Point<S extends Scalar>
   extends Atom<S>,
-    EVMEncoding<EVMPoint> {
+  EVMEncoding<EVMG1Point> {
   setHashOf(m: string): this;
   fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
 }
