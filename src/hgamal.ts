@@ -1,11 +1,11 @@
 import { Curve, EVMG1Point, Point, Scalar } from "./algebra";
-import { PublicKey, SecretKey } from "./index";
+import { KeyPair, PublicKey, SecretKey } from "./index";
 import { ok, err, Result } from "neverthrow";
 import * as crypto from "crypto";
 import assert from "assert";
 import { EncodingRes, EVMEncoding } from "./encoding";
 import { bnToArray } from "./utils";
-import { Transcript } from "./transcript";
+import { EVMTranscript } from "./transcript";
 import * as dleq from "./dleq";
 
 export class EVMCipher {
@@ -118,7 +118,7 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   suite: dleq.DleqSuite<S, P>,
   recipient: P,
   msg: Uint8Array,
-  transcript: Transcript,
+  transcript: EVMTranscript,
 ): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid plaintext size"));

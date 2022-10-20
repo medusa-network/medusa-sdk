@@ -1,16 +1,50 @@
 import { KeyPair, newKeypair } from "./index";
-import { Scalar, Point, Curve } from "./algebra";
+import { Scalar, Point, Curve, EVMG1Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
-import { EVMEncoding } from "./encoding";
+import { EVMEncoding, ABIEncoder, ABIString, ABIAddress, ABIBytes32, EncodingRes } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
-import { ShaTranscript, Transcript } from "./transcript";
+import { ShaTranscript, EVMTranscript } from "./transcript";
+import { BytesLike, ethers } from "ethers";
+import { arrayify } from "ethers/lib/utils";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
 
+/// Label needed to produce a valid ciphertext proof
+export class Label implements ABIEncoder, EVMEncoding<BytesLike> {
+  label: string;
+  constructor(medusa_key: ABIEncoder, platform_address: string, encryptor: string) {
+    if (!ethers.utils.isAddress(platform_address)) {
+      throw new Error("invalid platform address specified for label");
+    }
+    if (!ethers.utils.isAddress(encryptor)) {
+      throw new Error("invalid encryptor address specified for label");
+    }
+    this.label = new ShaTranscript()
+      .append(medusa_key)
+      .append(ABIAddress(platform_address))
+      .append(ABIAddress(encryptor))
+      .digest();
+  }
+  toEvm(): BytesLike {
+    return arrayify(this.label);
+  }
+  fromEvm(t: BytesLike): EncodingRes<this> {
+    throw new Error("Method not implemented.");
+  }
+
+  static from<S extends Scalar, P extends Point<S>>(medusa_key: P, platform_address: string, encryptor: string): Label {
+    return new Label(medusa_key, platform_address, encryptor);
+  }
+  abiEncode(): [string[], any[]] {
+    /// bytes32 since it's the output of sha256 and it's this type on solidity
+    /// ...
+    return ABIBytes32(this.label).abiEncode();
+  }
+}
 export class EncryptionBundle<
   KeyCipherEVM,
   KeyCipher extends EVMEncoding<KeyCipherEVM>
@@ -41,7 +75,7 @@ export class HGamalSuite<
   public async encryptToMedusa(
     data: Uint8Array,
     medusaKey: P,
-    label: Uint8Array,
+    label: Label,
   ): Promise<
     Result<
       EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
@@ -56,9 +90,8 @@ export class HGamalSuite<
     fullMessage.set(nonce);
     fullMessage.set(box, nonce.length);
 
-    // create a transcript and put the label inside, needed for DLEQ proof
-    const transcript= new ShaTranscript();
-    transcript.append(label);
+    /// in dleq -> H ( H(label), ... )
+    const transcript = new ShaTranscript().append(label);
     /// then using the Medusa encryption
     const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key, transcript);
     if (medusaCipher.isOk()) {

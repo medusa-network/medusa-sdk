@@ -1,6 +1,6 @@
 import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
 
-import { EncodingRes, EncodingError, EVMEncoding } from "./encoding";
+import { EncodingRes, EncodingError, EVMEncoding, ABIEncoder } from "./encoding";
 import * as mcl from "mcl-wasm";
 import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
@@ -25,10 +25,14 @@ export class Fr
   implements Atom<Fr>,
   Scalar,
   EVMEncoding<BigNumber>,
-  ToBytes {
+  ABIEncoder {
   f: mcl.Fr;
   constructor() {
     this.f = new mcl.Fr();
+  }
+
+  abiEncode(): [Array<string>, Array<any>] {
+    return [["uint256"], [this.f.serialize()]];
   }
 
   add(e: Fr): this {
@@ -101,12 +105,17 @@ export class Fr
   }
 }
 
-export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ToBytes {
+export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes {
   p: mcl.G1;
   constructor() {
     this.p = new mcl.G1();
   }
-
+  abiEncode(): [Array<string>, Array<any>] {
+    let evm = this.toEvm();
+    let xarray = bnToArray(evm.x, false, 32);
+    let yarray = bnToArray(evm.y, false, 32);
+    return [["uint256", "uint256"], [xarray, yarray]];
+  }
   add(e: G1): this {
     this.p = mcl.add(this.p, e.p);
     return this;

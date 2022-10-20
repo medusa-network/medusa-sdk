@@ -2,7 +2,8 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Contract, Signer } from "ethers";
-import { Playground__factory } from "../typechain";
+import { dleqBn128Sol, Playground__factory } from "../typechain";
+import { Proof as DleqProof } from "../src/dleq";
 import { init, suite as curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
@@ -35,7 +36,7 @@ describe("Test Encoding ", function () {
     // generate random 32 byte bigint
     const value = randomBytes(32); // 32 bytes = 256 bits
     const cipher = BigNumber.from(hexlify(value));
-    await test.logCipher(1, { random: random.toEvm(), cipher: cipher });
+    await test.logCipher(1, { random: random.toEvm(), cipher: cipher, random2: random.toEvm(), dleq: DleqProof.default(curve).toEvm() });
     const filter = test.filters.NewLogCipher(1);
     const logs = await test.queryFilter(filter, 0);
     expect(logs.length).to.be.eq(1);
