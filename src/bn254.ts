@@ -12,13 +12,14 @@ import { G2 } from "mcl-wasm";
 /// Initiatlization of the suite and some constants
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
-  mcl.setMapToMode(mcl.BN254);
-  suite = new Bn254Suite(new G1().fromEvm(new EVMG1Point(
-    // x
-    BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
-    // y
-    BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
-  ))._unsafeUnwrap());
+  //mcl.setMapToMode(mcl.BN254);
+  suite = new Bn254Suite(new G1().random());
+  //suite = new Bn254Suite(new G1().fromEvm(new EVMG1Point(
+  //  // x
+  //  BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
+  //  // y
+  //  BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
+  //))._unsafeUnwrap());
 }
 
 export class Fr
@@ -151,6 +152,8 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEnco
   }
 
   equal(e: G1): boolean {
+    this.p.normalize();
+    e.p.normalize();
     return this.p.isEqual(e.p);
   }
 

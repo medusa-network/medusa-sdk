@@ -3,18 +3,18 @@ import { Scalar, Point, Curve, EVMG1Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
-import { EVMEncoding, ABIEncoder, ABIString, ABIAddress, ABIBytes32, EncodingRes } from "./encoding";
+import { EVMEncoding, ABIEncoder, ABIString, ABIAddress, ABIBytes32, EncodingRes, ABIUint256 } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
 import { ShaTranscript, EVMTranscript } from "./transcript";
-import { BytesLike, ethers } from "ethers";
+import { BigNumber, BytesLike, ethers } from "ethers";
 import { arrayify } from "ethers/lib/utils";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
 
 /// Label needed to produce a valid ciphertext proof
-export class Label implements ABIEncoder, EVMEncoding<BytesLike> {
+export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   label: string;
   constructor(medusa_key: ABIEncoder, platform_address: string, encryptor: string) {
     if (!ethers.utils.isAddress(platform_address)) {
@@ -29,10 +29,10 @@ export class Label implements ABIEncoder, EVMEncoding<BytesLike> {
       .append(ABIAddress(encryptor))
       .digest();
   }
-  toEvm(): BytesLike {
-    return arrayify(this.label);
+  toEvm(): BigNumber {
+    return BigNumber.from(this.label);
   }
-  fromEvm(t: BytesLike): EncodingRes<this> {
+  fromEvm(t: BigNumber): EncodingRes<this> {
     throw new Error("Method not implemented.");
   }
 
@@ -40,9 +40,7 @@ export class Label implements ABIEncoder, EVMEncoding<BytesLike> {
     return new Label(medusa_key, platform_address, encryptor);
   }
   abiEncode(): [string[], any[]] {
-    /// bytes32 since it's the output of sha256 and it's this type on solidity
-    /// ...
-    return ABIBytes32(this.label).abiEncode();
+    return ABIUint256(BigNumber.from(this.label)).abiEncode();
   }
 }
 export class EncryptionBundle<

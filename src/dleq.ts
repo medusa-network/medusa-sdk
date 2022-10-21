@@ -1,4 +1,5 @@
 import { BigNumber } from "ethers";
+import { arrayify, hexlify } from "ethers/lib/utils";
 import { ok, err } from "neverthrow";
 import { Point, Scalar, Curve } from "./algebra";
 import { EncodingRes, EVMEncoding } from "./encoding";
@@ -61,9 +62,12 @@ export function prove<S extends Scalar,
     // w1 = t*G1, w2 = t*G2
     let w1 = suite.base1().mul(t);
     let w2 = suite.base2().mul(t);
-    console.log(w1.toEvm().x.toString());
-    console.log(w2.toEvm().x.toString());
-    let challenge: S = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
+    console.log("local w1 -> ", w1.toEvm().x.toString());
+    console.log("local w2 -> ", w2.toEvm().x.toString());
+    //let challenge: S = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
+    let c = tr.digest();
+    console.log("local challebge: ", c);
+    let challenge = suite.scalar().deserialize(arrayify(c))._unsafeUnwrap();
     // f = t - challenge * r
     let f = t.add(suite.scalar().set(challenge).mul(secret).neg());
     return new Proof(f, challenge);

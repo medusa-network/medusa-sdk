@@ -29,11 +29,12 @@ export interface EVMEncoding<T> {
 
 export function ABIString(v: string): EVMTypeWrapper { return new EVMTypeWrapper(v, "string") };
 export function ABIAddress(v: string): EVMTypeWrapper { return new EVMTypeWrapper(v, "address") };
+export function ABIUint256(b: ethers.BigNumber): EVMTypeWrapper { return new EVMTypeWrapper(b, "uint256") };
 export function ABIBytes32(b: ethers.BigNumber | string): EVMTypeWrapper {
   if (b instanceof ethers.BigNumber) {
     return new EVMTypeWrapper(b, "bytes32");
   } else {
-    return new EVMTypeWrapper(ethers.BigNumber.from(b),"bytes32");
+    return new EVMTypeWrapper(ethers.BigNumber.from(b), "bytes32");
   }
 }
 

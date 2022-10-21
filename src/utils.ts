@@ -1,5 +1,7 @@
 import { BigNumber } from "ethers";
 import { arrayify, hexlify, hexZeroPad, randomBytes } from "ethers/lib/utils";
+import { ChaCha } from "ffjavascript";
+import crypto from "crypto";
 
 export function randHex(n: number): string {
   return hexlify(randomBytes(n));
@@ -32,4 +34,41 @@ export function arrayToBn(a: Uint8Array, reverse = false): BigNumber {
     return BigNumber.from(a.reverse());
   }
   return BigNumber.from(a);
+}
+
+
+// taken from https://github.com/iden3/ffjavascript/blob/d5c1243eef385b69ce17084d7c9bede648c84bdb/src/random.js#L33
+export function getRandomBytes(n) {
+  let array = new Uint8Array(n);
+  if (process.browser) { // Browser
+      if (typeof globalThis.crypto !== "undefined") { // Supported
+          globalThis.crypto.getRandomValues(array);
+      } else { // fallback
+          for (let i=0; i<n; i++) {
+              array[i] = (Math.random()*4294967296)>>>0;
+          }
+      }
+  }
+  else { // NodeJS
+      crypto.randomFillSync(array);
+  }
+  return array;
+}
+
+export function getRandomSeed() {
+  const arr = getRandomBytes(32);
+  const arrV = new Uint32Array(arr.buffer);
+  const seed = [];
+  for (let i=0; i<8; i++) {
+      seed.push(arrV[i]);
+  }
+  return seed;
+}
+
+let threadRng = null;
+
+export function getThreadRng() {
+  if (threadRng) return threadRng;
+  threadRng = new ChaCha(getRandomSeed());
+  return threadRng;
 }
