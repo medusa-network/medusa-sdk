@@ -18,7 +18,7 @@ export async function init(): Promise<void> {
   curve = await buildBn128();
   IG1 = curve.G1;
   IFr = curve.Fr;
-  suite = new Bn254Suite(IG1);
+  suite = new Bn254Suite();
   //    // x
   //    BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
   //    // y
@@ -205,12 +205,9 @@ export class G1
 
 // @ts-ignore
 class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
-
-    constructor() {
-    }
-    scalar(): Fr {
-        return new Fr();
-    }
+  scalar(): Fr {
+    return new Fr();
+  }
 
   point(): G1 {
     return new G1();
