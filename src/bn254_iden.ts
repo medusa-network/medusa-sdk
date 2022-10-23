@@ -1,26 +1,24 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
-import { FFIScalar, buildBn128, WasmCurve } from "ffjavascript";
+// @ts-ignore
+import { buildBn128, WasmCurve } from "ffjavascript";
 import {
   EncodingRes,
   EncodingError,
   EVMEncoding,
   ABIEncoder,
 } from "./encoding";
-import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
 import { ToBytes } from "../src/transcript";
-import * as utils from "../src/utils";
 import { DleqSuite } from "./dleq";
-import { G2, IRTF } from "mcl-wasm";
-import { fileURLToPath } from "url";
 
 /// Initiatlization of the suite and some constants
 export async function init(): Promise<void> {
   curve = await buildBn128();
   IG1 = curve.G1;
   IFr = curve.Fr;
-  suite = new Bn254Suite();
+  suite = new Bn254Suite(IG1);
   //    // x
   //    BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
   //    // y
@@ -45,6 +43,7 @@ export class Fr
     return this;
   }
 
+  // @ts-ignore
   mul(e: Fr): this {
     this.f = IFr.mul(this.f, e.f);
     return this;
@@ -108,6 +107,7 @@ export class Fr
 }
 
 export class G1
+  // @ts-ignore
   implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
 {
   p: any;
@@ -202,6 +202,8 @@ export class G1
     return ok(this);
   }
 }
+
+// @ts-ignore
 class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   _base2: G1;
 

@@ -1,7 +1,5 @@
 import { BigNumber } from "ethers";
 import { EncodingRes, EVMEncoding, ABIEncoder } from "./encoding";
-import { ToBytes } from "./transcript";
-import { bnToArray } from "./utils";
 
 export interface Atom<RHS> {
   add(e: this): this;

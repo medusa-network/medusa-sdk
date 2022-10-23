@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { BigNumber } from "ethers";
 import { arrayify, hexlify, hexZeroPad, randomBytes } from "ethers/lib/utils";
+// @ts-ignore
 import { ChaCha } from "ffjavascript";
 import crypto from "crypto";
 
@@ -37,8 +39,9 @@ export function arrayToBn(a: Uint8Array, reverse = false): BigNumber {
 }
 
 // taken from https://github.com/iden3/ffjavascript/blob/d5c1243eef385b69ce17084d7c9bede648c84bdb/src/random.js#L33
-export function getRandomBytes(n) {
+export function getRandomBytes(n: number): Uint8Array {
   const array = new Uint8Array(n);
+  // @ts-ignore
   if (process.browser) {
     // Browser
     if (typeof globalThis.crypto !== "undefined") {
@@ -57,7 +60,7 @@ export function getRandomBytes(n) {
   return array;
 }
 
-export function getRandomSeed() {
+export function getRandomSeed(): number[] {
   const arr = getRandomBytes(32);
   const arrV = new Uint32Array(arr.buffer);
   const seed = [];
@@ -67,7 +70,7 @@ export function getRandomSeed() {
   return seed;
 }
 
-let threadRng = null;
+let threadRng: any = null;
 
 export function getThreadRng() {
   if (threadRng) return threadRng;
