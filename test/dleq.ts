@@ -61,13 +61,13 @@ describe("dleq proof", () => {
     });
 
     it("onchain dleq proof verification", async () => {
-        let secret = suite.scalar().random();
-        let rg1 = suite.base1().mul(secret);
-        let rg2 = suite.base2().mul(secret);
+        const secret = suite.scalar().random();
+        const rg1 = suite.base1().mul(secret);
+        const rg2 = suite.base2().mul(secret);
         // fake label
-        let label = Label.from(rg1, owner.address, owner.address);
-        //const label = new BigNumber.from(100);
-        //const labelABI = ABIUint256(label);
+        const label = Label.from(rg1, owner.address, owner.address);
+        // const label = new BigNumber.from(100);
+        // const labelABI = ABIUint256(label);
         let prover_transcript = new ShaTranscript().append(label);
         let proof = prove(suite, prover_transcript, secret, rg1, rg2);
         // verify still locally

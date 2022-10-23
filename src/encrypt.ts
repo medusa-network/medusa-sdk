@@ -18,20 +18,25 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   label: string;
   constructor(medusa_key: ABIEncoder, platform_address: string, encryptor: string) {
     if (!ethers.utils.isAddress(platform_address)) {
-      throw new Error("invalid platform address specified for label: "+ platform_address);
+      throw new Error("invalid platform address specified for label: " + platform_address);
     }
     if (!ethers.utils.isAddress(encryptor)) {
-      throw new Error("invalid encryptor address specified for label: "+ encryptor);
+      throw new Error("invalid encryptor address specified for label: " + encryptor);
     }
     this.label = new ShaTranscript()
+      // uint256 label = uint256(sha256(
+      //    abi.encode(distKey.x, distKey.y, msg.sender, _encryptor)
+      // ));
       .append(medusa_key)
       .append(ABIAddress(platform_address))
       .append(ABIAddress(encryptor))
       .digest();
   }
+
   toEvm(): BigNumber {
     return BigNumber.from(this.label);
   }
+
   fromEvm(t: BigNumber): EncodingRes<this> {
     throw new Error("Method not implemented.");
   }
@@ -39,6 +44,7 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   static from<S extends Scalar, P extends Point<S>>(medusa_key: P, platform_address: string, encryptor: string): Label {
     return new Label(medusa_key, platform_address, encryptor);
   }
+
   abiEncode(): [string[], any[]] {
     return ABIUint256(BigNumber.from(this.label)).abiEncode();
   }
