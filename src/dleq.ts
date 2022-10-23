@@ -1,6 +1,5 @@
 import { BigNumber } from "ethers";
-import { arrayify, hexlify } from "ethers/lib/utils";
-import { ok, err } from "neverthrow";
+import { ok } from "neverthrow";
 import { Point, Scalar, Curve } from "./algebra";
 import { EncodingRes, EVMEncoding } from "./encoding";
 import { EVMTranscript } from "./transcript";
@@ -12,6 +11,13 @@ export interface DleqSuite<S extends Scalar, P extends Point<S>>
   base1(): P;
   base2(): P;
 }
+
+/// The EVM encoding of Proof
+export type EVMProof = {
+  f: BigNumber;
+  e: BigNumber;
+};
+
 export class Proof<S extends Scalar> implements EVMEncoding<EVMProof> {
   // f = t + e*s
   f: S;
@@ -49,12 +55,6 @@ export class Proof<S extends Scalar> implements EVMEncoding<EVMProof> {
     };
   }
 }
-
-/// The EVM encoding of Proof
-export type EVMProof = {
-  f: BigNumber;
-  e: BigNumber;
-};
 
 /// creates a DLEQ proof between r*G1 and r*G2
 export function prove<

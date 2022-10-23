@@ -31,7 +31,7 @@ export async function init(): Promise<void> {
 export class Fr
   implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder
 {
-  f: Object;
+  f: any;
   constructor() {
     this.f = IFr.zero;
   }
@@ -110,7 +110,7 @@ export class Fr
 export class G1
   implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
 {
-  p: Object;
+  p: any;
   constructor() {
     this.p = IG1.g;
   }

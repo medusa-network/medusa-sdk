@@ -77,6 +77,13 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   }
 }
 
+export class EVMMedusaReencryption {
+  random: EVMG1Point;
+  constructor(r: EVMG1Point) {
+    this.random = r;
+  }
+}
+
 /// Ciphertext that Medusa emits to the smart contract
 export class MedusaReencryption<S extends Scalar, P extends Point<S>>
   implements EVMEncoding<EVMMedusaReencryption>
@@ -102,13 +109,6 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
       this.random = v;
       return ok(this);
     });
-  }
-}
-
-export class EVMMedusaReencryption {
-  random: EVMG1Point;
-  constructor(r: EVMG1Point) {
-    this.random = r;
   }
 }
 

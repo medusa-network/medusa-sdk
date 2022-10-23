@@ -1,22 +1,19 @@
 import { KeyPair, newKeypair } from "./index";
-import { Scalar, Point, Curve, EVMG1Point } from "./algebra";
+import { Scalar, Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
 import {
   EVMEncoding,
   ABIEncoder,
-  ABIString,
   ABIAddress,
-  ABIBytes32,
   EncodingRes,
   ABIUint256,
 } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
-import { ShaTranscript, EVMTranscript } from "./transcript";
-import { BigNumber, BytesLike, ethers } from "ethers";
-import { arrayify } from "ethers/lib/utils";
+import { ShaTranscript } from "./transcript";
+import { BigNumber, ethers } from "ethers";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
@@ -25,13 +22,13 @@ const generateKey = () => randomBytes(secretbox.keyLength);
 export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   label: string;
   constructor(
-    medusa_key: ABIEncoder,
-    platform_address: string,
+    medusaKey: ABIEncoder,
+    platformAddress: string,
     encryptor: string
   ) {
-    if (!ethers.utils.isAddress(platform_address)) {
+    if (!ethers.utils.isAddress(platformAddress)) {
       throw new Error(
-        "invalid platform address specified for label: " + platform_address
+        "invalid platform address specified for label: " + platformAddress
       );
     }
     if (!ethers.utils.isAddress(encryptor)) {
@@ -43,8 +40,8 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
       // uint256 label = uint256(sha256(
       //    abi.encode(distKey.x, distKey.y, msg.sender, _encryptor)
       // ));
-      .append(medusa_key)
-      .append(ABIAddress(platform_address))
+      .append(medusaKey)
+      .append(ABIAddress(platformAddress))
       .append(ABIAddress(encryptor))
       .digest();
   }
@@ -58,11 +55,11 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   }
 
   static from<S extends Scalar, P extends Point<S>>(
-    medusa_key: P,
-    platform_address: string,
+    medusaKey: P,
+    platformAddress: string,
     encryptor: string
   ): Label {
-    return new Label(medusa_key, platform_address, encryptor);
+    return new Label(medusaKey, platformAddress, encryptor);
   }
 
   abiEncode(): [string[], any[]] {
