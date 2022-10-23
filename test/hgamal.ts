@@ -1,7 +1,7 @@
 import * as hgamal from "../src/hgamal";
 import { BigNumber } from "ethers";
 import { newKeypair, KeyPair } from "../src";
-import { init, suite, G1 } from "../src/bn254";
+import { init, suite, G1 } from "../src/bn254_iden";
 import { Scalar, Point, Curve, EVMG1Point } from "../src/algebra";
 import * as dleq from "../src/dleq";
 import assert from "assert";
@@ -10,31 +10,15 @@ import { arrayToBn, bnToArray } from "../src/utils";
 import { HGamalSuite } from "../src/encrypt";
 import { ShaTranscript } from "../src/transcript";
 import { receiveMessageOnPort } from "worker_threads";
-
-export function reencrypt<S extends Scalar, P extends Point<S>>(
-  c: Curve<S, P>,
-  kp: KeyPair<S, P>,
-  recipient: P,
-  cipher: hgamal.Ciphertext<S, P>
-): hgamal.MedusaReencryption<S, P> {
-  // Input is { rG, H(rP) ^ m }
-  // where P=pG is public key of proxy (kp)
-  // B=bG is the recipient key
-  // Output is
-  // prG + pB = p(rG + B)
-  // see hgamal script for more details
-  const random = c.point().set(recipient).add(cipher.random).mul(kp.secret);
-  const reenc = new hgamal.MedusaReencryption(random);
-  return reenc;
-}
+import { reencrypt } from "./utils";
 
 export function pointFromXY(x: string, y: string): G1 {
   // We reverse manually first here because EVM etherjs will read in bigendian
   // so the fromEVM calls already reverse the array. Therefore we need to give it
   // in a reversed form first, (the hex from Rust comes in littleendian), so we need
   // to give it in big endian form.
-  const xa = arrayToBn(arrayify(x), true);
-  const ya = arrayToBn(arrayify(y), true);
+  const xa = arrayToBn(arrayify(x), true, 32);
+  const ya = arrayToBn(arrayify(y), true, 32);
   const p = suite.point().fromEvm(new EVMG1Point(xa, ya));
   assert(p.isOk());
   return p._unsafeUnwrap();
@@ -43,11 +27,7 @@ export function transcript(): ShaTranscript {
   return new ShaTranscript();
 }
 function compareEqual(p1: G1, p2: G1): boolean {
-  return suite
-    .point()
-    .set(p1)
-    .add(suite.point().set(p2).neg())
-    .equal(suite.point().zero());
+  return p1.equal(p2);
 }
 
 
@@ -149,14 +129,14 @@ describe("hgamal", () => {
     const proxyPub = pointFromXY(data.proxypub.x, data.proxypub.y);
     const proxyPriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.proxypriv)))
+      .fromEvm(arrayToBn(arrayify(data.proxypriv), true))
       ._unsafeUnwrap();
     const expProxyPub = suite.point().one().mul(proxyPriv);
     assert.ok(compareEqual(expProxyPub, proxyPub));
 
     const bobpriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.bobpriv)))
+      .fromEvm(arrayToBn(arrayify(data.bobpriv), true))
       ._unsafeUnwrap();
     const bobpub = suite.point().one().mul(suite.scalar().set(bobpriv));
     const bobpubFound = pointFromXY(data.bobpub.x, data.bobpub.y);
@@ -166,7 +146,7 @@ describe("hgamal", () => {
     const shared = pointFromXY(data.shared.x, data.shared.y);
     const tmp_priv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.random_priv)))
+      .fromEvm(arrayToBn(arrayify(data.random_priv),true))
       ._unsafeUnwrap();
     const expShared = suite.point().set(proxyPub).mul(tmp_priv);
     assert.ok(compareEqual(shared, expShared));

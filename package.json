@@ -26,7 +26,7 @@
     "author": "Cryptonet",
     "license": "ISC",
     "dependencies": {
-        "ffjavascript": "file:./libs/ffjavascript-0.2.56",
+        "ffjavascript": "^0.2.56",
         "hardhat": "^2.9.5",
         "js-crypto-hkdf": "^1.0.4",
         "mcl-wasm": "^1.0.2",

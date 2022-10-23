@@ -64,10 +64,7 @@ export function prove<S extends Scalar,
     let w2 = suite.base2().mul(t);
     console.log("local w1 -> ", w1.toEvm().x.toString());
     console.log("local w2 -> ", w2.toEvm().x.toString());
-    //let challenge: S = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
-    let c = tr.digest();
-    console.log("local challebge: ", c);
-    let challenge = suite.scalar().deserialize(arrayify(c))._unsafeUnwrap();
+    let challenge: S = tr.append(rg1).append(rg2).append(w1).append(w2).challenge(suite.scalar());
     // f = t - challenge * r
     let f = t.add(suite.scalar().set(challenge).mul(secret).neg());
     return new Proof(f, challenge);

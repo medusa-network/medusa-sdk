@@ -75,7 +75,6 @@ export class Fr
     equal(e: Fr): boolean {
         return IFr.eq(this.f, e.f);
     }
-
     serialize(): Uint8Array {
         const buff = new Uint8Array(32);
         IFr.toRprLE(buff, 0, this.f);
@@ -146,7 +145,7 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEnco
     // }
 
     one(): this {
-        this.p = IG1.one;
+        this.p = IG1.g;
         return this;
     }
 
@@ -186,9 +185,9 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEnco
         // be pretty sure the point is gonna be on the curve, since the contract
         // checks the dleq proof
         // console.log("bytelength => ", this.p.byteLength, " vs normal ", new G1().random().p.byteLength, " vs library ", IG1.F.n8 * 2);
-        //if (!IG1.isValid(p)) {
-        //    return err(new EncodingError("invalid point"));
-        //}
+        if (!IG1.isValid(this.p)) {
+            return err(new EncodingError("invalid point"));
+        }
         return ok(this);
     }
 }

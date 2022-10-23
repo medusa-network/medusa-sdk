@@ -25,64 +25,66 @@ describe("dleq proof", () => {
         owner = a1;
         testContract = await new Playground__factory(owner).deploy();
     })
-    //it("typescript verification", () => {
-    //    let secret = suite.scalar().random();
-    //    let b2 = suite.base2();
-    //    let rg2 = suite.base2().mul(secret);
-    //    let rg1 = suite.base1().mul(secret);
-    //    let prover_transcript = new ShaTranscript();
-    //    let proof = prove(suite, prover_transcript, secret, rg1, rg2);
-    //    let verifier_transcript = new ShaTranscript();
-    //    let valid = verify(suite, verifier_transcript, rg1, rg2, proof);
-    //    assert.ok(valid);
+    it("typescript verification", () => {
+        let secret = suite.scalar().random();
+        let b2 = suite.base2();
+        let rg2 = suite.base2().mul(secret);
+        let rg1 = suite.base1().mul(secret);
+        let prover_transcript = new ShaTranscript();
+        let proof = prove(suite, prover_transcript, secret, rg1, rg2);
+        let verifier_transcript = new ShaTranscript();
+        let valid = verify(suite, verifier_transcript, rg1, rg2, proof);
+        assert.ok(valid);
 
-    //    proof.f = suite.scalar().random();
-    //    assert.ok(!verify(suite, new ShaTranscript(), rg1, rg2, proof));
+        proof.toEvm();
 
-    //    let invalid_transcript = new ShaTranscript();
-    //    invalid_transcript.append(ABIString("fiat shamir is the weakness"));
-    //    assert.ok(!verify(suite, invalid_transcript, rg1, rg2, proof));
-    //});
+        proof.f = suite.scalar().random();
+        assert.ok(!verify(suite, new ShaTranscript(), rg1, rg2, proof));
 
-    //it("onchain transcript verification", async () => {
-    //    console.log(await artifacts.getArtifactPaths());
-    //    const labelP = suite.point().random();
-    //    const hashP = suite.point().random();
-    //    const myAddr = await owner.getAddress();
-    //    const evmVersion = await testContract.shathis(labelP.toEvm(), myAddr, hashP.toEvm());
-    //    console.log(evmVersion);
-    //    //const label = ethers.utils.soliditySha256(["address", "uint256", "uint256"], [myAddr, evmP.x, evmP.y]);//ethers.utils.toUtf8Bytes(myAddr));
-    //    const label = new ShaTranscript().append(ABIAddress(myAddr)).append(labelP).digest();
-    //    const finalSha = new ShaTranscript().append(ABIBytes32(label)).append(hashP).digest();
-    //    console.log(finalSha);
-    //    assert.strictEqual(evmVersion, finalSha);
-    //});
+        let invalid_transcript = new ShaTranscript();
+        invalid_transcript.append(ABIString("fiat shamir is the weakness"));
+        assert.ok(!verify(suite, invalid_transcript, rg1, rg2, proof));
+    });
+
+    it("onchain transcript verification", async () => {
+        console.log(await artifacts.getArtifactPaths());
+        const labelP = suite.point().random();
+        const hashP = suite.point().random();
+        const myAddr = await owner.getAddress();
+        const evmVersion = await testContract.shathis(labelP.toEvm(), myAddr, hashP.toEvm());
+        console.log(evmVersion);
+        //const label = ethers.utils.soliditySha256(["address", "uint256", "uint256"], [myAddr, evmP.x, evmP.y]);//ethers.utils.toUtf8Bytes(myAddr));
+        const label = new ShaTranscript().append(ABIAddress(myAddr)).append(labelP).digest();
+        const finalSha = new ShaTranscript().append(ABIBytes32(label)).append(hashP).digest();
+        console.log(finalSha);
+        assert.strictEqual(evmVersion, finalSha);
+    });
 
     it("onchain dleq proof verification", async () => {
         let secret = suite.scalar().random();
         let rg1 = suite.base1().mul(secret);
         let rg2 = suite.base2().mul(secret);
         // fake label
-        //let label = Label.from(rg1, owner.address, owner.address);
-        const label = BigNumber.from(100);
-        const labelABI = ABIUint256(label);
-        let prover_transcript = new ShaTranscript().append(labelABI);
+        let label = Label.from(rg1, owner.address, owner.address);
+        //const label = new BigNumber.from(100);
+        //const labelABI = ABIUint256(label);
+        let prover_transcript = new ShaTranscript().append(label);
         let proof = prove(suite, prover_transcript, secret, rg1, rg2);
         // verify still locally
-        //let verifier_transcript = new ShaTranscript().append(label);
-        //let valid = verify(suite, verifier_transcript, rg1, rg2, proof);
-        //assert.ok(valid);
+        let verifier_transcript = new ShaTranscript().append(label);
+        let valid = verify(suite, verifier_transcript, rg1, rg2, proof);
+        assert.ok(valid, "local verification fails");
         // verify onchain
-        //const check = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label.toEvm());
-        //assert.ok(check);
+        const check = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label.toEvm());
+        assert.ok(check, "smart contract verification fail");
         /// challenge
         //const challenge = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label.toEvm());
         //console.log("challenge evm = ", challenge);
         //console.log("challenge proof: ", proof.e);
         /// w1 = fG1 + r
-        const g1fe = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label);
-        const chal = suite.scalar().fromEvm(g1fe)._unsafeUnwrap();
-        console.log("chal from evm: ", hexlify(chal.serialize()));
+        //const g1fe = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label);
+        //const chal = suite.scalar().fromEvm(g1fe)._unsafeUnwrap();
+        //console.log("chal from evm: ", g1fe.toHexString());
         //const w2 = suite.point().fromEvm(g1fe)._unsafeUnwrap();
         //console.log("w2 from evm: ", w2.toEvm().x.toString());
         // normalization via serialization

@@ -44,7 +44,7 @@ export class ShaTranscript implements EVMTranscript {
         return this;
     }
     challenge<S extends Scalar>(into: S): S {
-        return into.deserialize(arrayify(this.digest()))._unsafeUnwrap();
+        return into.fromEvm(BigNumber.from(this.digest()))._unsafeUnwrap();
     }
     digest(): string {
         return ethers.utils.soliditySha256(this.types, this.elements);

@@ -14,12 +14,12 @@ export class EVMCipher {
   // random element on the second base r*G2
   // used by the DLEQ proof.
   random2: EVMG1Point;
-  proof: dleq.EVMProof;
+  dleq: dleq.EVMProof;
   constructor(r: EVMG1Point, c: Uint8Array, rg2: EVMG1Point, proof: dleq.EVMProof) {
     this.random = r;
     this.cipher = c;
     this.random2 = rg2;
-    this.proof = proof;
+    this.dleq = proof;
   }
 }
 export class Ciphertext<S extends Scalar, P extends Point<S>>
@@ -28,13 +28,13 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   random: P;
   cipher: Uint8Array;
   random2: P;
-  proof: dleq.Proof<S>;
+  dleq: dleq.Proof<S>;
 
   constructor(r: P, c: Uint8Array, rg2: P, proof: dleq.Proof<S>) {
     this.random = r;
     this.cipher = c;
     this.random2 = rg2;
-    this.proof = proof;
+    this.dleq = proof;
   }
 
   static default<S extends Scalar, P extends Point<S>>(c: Curve<S, P>): Ciphertext<S, P> {
@@ -46,16 +46,16 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
       this.random.toEvm(),
       this.cipher,
       this.random2.toEvm(),
-      this.proof.toEvm());
+      this.dleq.toEvm());
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
     this.cipher = e.cipher;
     return this.random.fromEvm(e.random).andThen((r) => {
       this.random = r;
-      return this.proof.fromEvm(e.proof);
+      return this.dleq.fromEvm(e.dleq);
     }).andThen((proof) => {
-      this.proof = proof;
+      this.dleq = proof;
       return ok(this);
     });
   }

@@ -18,10 +18,10 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   label: string;
   constructor(medusa_key: ABIEncoder, platform_address: string, encryptor: string) {
     if (!ethers.utils.isAddress(platform_address)) {
-      throw new Error("invalid platform address specified for label");
+      throw new Error("invalid platform address specified for label: "+ platform_address);
     }
     if (!ethers.utils.isAddress(encryptor)) {
-      throw new Error("invalid encryptor address specified for label");
+      throw new Error("invalid encryptor address specified for label: "+ encryptor);
     }
     this.label = new ShaTranscript()
       .append(medusa_key)
@@ -88,7 +88,8 @@ export class HGamalSuite<
     fullMessage.set(nonce);
     fullMessage.set(box, nonce.length);
 
-    /// in dleq -> H ( H(label), ... )
+    /// label will output its digest so in the end we have
+    /// H ( H(label), ... )
     const transcript = new ShaTranscript().append(label);
     /// then using the Medusa encryption
     const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key, transcript);
