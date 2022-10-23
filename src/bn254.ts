@@ -104,7 +104,7 @@ export class Fr
   }
 
   fromEvm(t: BigNumber): EncodingRes<this> {
-    this.f.deserialize(bnToArray(t));
+    this.f.deserialize(bnToArray(t, false, 32));
     return ok(this);
   }
 }
