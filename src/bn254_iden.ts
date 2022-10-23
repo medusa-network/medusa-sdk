@@ -205,15 +205,12 @@ export class G1
 
 // @ts-ignore
 class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
-  _base2: G1;
 
-  constructor(base2: G1) {
-    this._base2 = base2;
-  }
-
-  scalar(): Fr {
-    return new Fr();
-  }
+    constructor() {
+    }
+    scalar(): Fr {
+        return new Fr();
+    }
 
   point(): G1 {
     return new G1();
