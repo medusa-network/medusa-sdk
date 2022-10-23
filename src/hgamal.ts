@@ -15,7 +15,12 @@ export class EVMCipher {
   // used by the DLEQ proof.
   random2: EVMG1Point;
   dleq: dleq.EVMProof;
-  constructor(r: EVMG1Point, c: Uint8Array, rg2: EVMG1Point, proof: dleq.EVMProof) {
+  constructor(
+    r: EVMG1Point,
+    c: Uint8Array,
+    rg2: EVMG1Point,
+    proof: dleq.EVMProof
+  ) {
     this.random = r;
     this.cipher = c;
     this.random2 = rg2;
@@ -37,8 +42,15 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
     this.dleq = proof;
   }
 
-  static default<S extends Scalar, P extends Point<S>>(c: Curve<S, P>): Ciphertext<S, P> {
-    return new Ciphertext(c.point(), new Uint8Array(), c.point(), dleq.Proof.default(c));
+  static default<S extends Scalar, P extends Point<S>>(
+    c: Curve<S, P>
+  ): Ciphertext<S, P> {
+    return new Ciphertext(
+      c.point(),
+      new Uint8Array(),
+      c.point(),
+      dleq.Proof.default(c)
+    );
   }
 
   toEvm(): EVMCipher {
@@ -46,32 +58,38 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
       this.random.toEvm(),
       this.cipher,
       this.random2.toEvm(),
-      this.dleq.toEvm());
+      this.dleq.toEvm()
+    );
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
     this.cipher = e.cipher;
-    return this.random.fromEvm(e.random).andThen((r) => {
-      this.random = r;
-      return this.dleq.fromEvm(e.dleq);
-    }).andThen((proof) => {
-      this.dleq = proof;
-      return ok(this);
-    });
+    return this.random
+      .fromEvm(e.random)
+      .andThen((r) => {
+        this.random = r;
+        return this.dleq.fromEvm(e.dleq);
+      })
+      .andThen((proof) => {
+        this.dleq = proof;
+        return ok(this);
+      });
   }
 }
 
-
 /// Ciphertext that Medusa emits to the smart contract
 export class MedusaReencryption<S extends Scalar, P extends Point<S>>
-  implements EVMEncoding<EVMMedusaReencryption> {
+  implements EVMEncoding<EVMMedusaReencryption>
+{
   random: P;
 
   constructor(r: P) {
     this.random = r;
   }
 
-  static default<S extends Scalar, P extends Point<S>>(c: Curve<S, P>): MedusaReencryption<S, P> {
+  static default<S extends Scalar, P extends Point<S>>(
+    c: Curve<S, P>
+  ): MedusaReencryption<S, P> {
     return new MedusaReencryption(c.point());
   }
 
@@ -85,7 +103,6 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
       return ok(this);
     });
   }
-
 }
 
 export class EVMMedusaReencryption {
@@ -118,7 +135,7 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   suite: dleq.DleqSuite<S, P>,
   recipient: P,
   msg: Uint8Array,
-  transcript: EVMTranscript,
+  transcript: EVMTranscript
 ): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid plaintext size"));
@@ -150,10 +167,10 @@ export async function decryptReencryption<
   priv: S,
   proxyPub: P,
   original: Ciphertext<S, P>,
-  reencrypted: MedusaReencryption<S, P>,
+  reencrypted: MedusaReencryption<S, P>
 ): Promise<DecryptionRes> {
   // XXX not really needed since smart contract does it
-  // TODO place this when we read all submitted ciperthext, 
+  // TODO place this when we read all submitted ciperthext,
   // we must verify if they are legit
   if (original.cipher.length !== HKDF_SIZE) {
     return err(new EncryptionError("invalid cipher size"));

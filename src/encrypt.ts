@@ -3,7 +3,15 @@ import { Scalar, Point, Curve, EVMG1Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
-import { EVMEncoding, ABIEncoder, ABIString, ABIAddress, ABIBytes32, EncodingRes, ABIUint256 } from "./encoding";
+import {
+  EVMEncoding,
+  ABIEncoder,
+  ABIString,
+  ABIAddress,
+  ABIBytes32,
+  EncodingRes,
+  ABIUint256,
+} from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
 import { ShaTranscript, EVMTranscript } from "./transcript";
@@ -16,12 +24,20 @@ const generateKey = () => randomBytes(secretbox.keyLength);
 /// Label needed to produce a valid ciphertext proof
 export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   label: string;
-  constructor(medusa_key: ABIEncoder, platform_address: string, encryptor: string) {
+  constructor(
+    medusa_key: ABIEncoder,
+    platform_address: string,
+    encryptor: string
+  ) {
     if (!ethers.utils.isAddress(platform_address)) {
-      throw new Error("invalid platform address specified for label: " + platform_address);
+      throw new Error(
+        "invalid platform address specified for label: " + platform_address
+      );
     }
     if (!ethers.utils.isAddress(encryptor)) {
-      throw new Error("invalid encryptor address specified for label: " + encryptor);
+      throw new Error(
+        "invalid encryptor address specified for label: " + encryptor
+      );
     }
     this.label = new ShaTranscript()
       // uint256 label = uint256(sha256(
@@ -41,7 +57,11 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     throw new Error("Method not implemented.");
   }
 
-  static from<S extends Scalar, P extends Point<S>>(medusa_key: P, platform_address: string, encryptor: string): Label {
+  static from<S extends Scalar, P extends Point<S>>(
+    medusa_key: P,
+    platform_address: string,
+    encryptor: string
+  ): Label {
     return new Label(medusa_key, platform_address, encryptor);
   }
 
@@ -79,7 +99,7 @@ export class HGamalSuite<
   public async encryptToMedusa(
     data: Uint8Array,
     medusaKey: P,
-    label: Label,
+    label: Label
   ): Promise<
     Result<
       EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
@@ -98,7 +118,12 @@ export class HGamalSuite<
     /// H ( H(label), ... )
     const transcript = new ShaTranscript().append(label);
     /// then using the Medusa encryption
-    const medusaCipher = await hgamal.encrypt(this.suite, medusaKey, key, transcript);
+    const medusaCipher = await hgamal.encrypt(
+      this.suite,
+      medusaKey,
+      key,
+      transcript
+    );
     if (medusaCipher.isOk()) {
       return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
     } else {
@@ -122,7 +147,7 @@ export class HGamalSuite<
     // original ciphertext of the data and more importantly the key
     bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
     // the reencryption of the key by the medusa network
-    reencryption: hgamal.MedusaReencryption<S, P>,
+    reencryption: hgamal.MedusaReencryption<S, P>
   ): Promise<hgamal.DecryptionRes> {
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
@@ -130,7 +155,7 @@ export class HGamalSuite<
       secret,
       medusaKey,
       bundle.encryptedKey, // original cipher of the key
-      reencryption, // reencryption done by medusa
+      reencryption // reencryption done by medusa
     );
     if (!r.isOk()) {
       return err(r.error);

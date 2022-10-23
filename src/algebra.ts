@@ -18,8 +18,8 @@ export interface Atom<RHS> {
 
 export interface Scalar
   extends Atom<Scalar>,
-  EVMEncoding<BigNumber>,
-  ABIEncoder {
+    EVMEncoding<BigNumber>,
+    ABIEncoder {
   inverse(): this;
   /// takes an array of bytes, modulo it to the
   /// the scalar field and return the scalar.
@@ -37,15 +37,14 @@ export class EVMG1Point {
     this.x = x;
     this.y = y;
   }
-
 }
 
 export interface Point<S extends Scalar>
   extends Atom<S>,
-  EVMEncoding<EVMG1Point>,
-  ABIEncoder {
-  //setHashOf(m: string): this;
-  //fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
+    EVMEncoding<EVMG1Point>,
+    ABIEncoder {
+  // setHashOf(m: string): this;
+  // fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
 }
 
 // Unfortunately we can not have static methods on scalar
