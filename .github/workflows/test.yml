@@ -23,6 +23,9 @@ jobs:
           token: ${{ secrets.CI_ACCESS_TOKEN }} # TODO: This token is attached to @jaeaster personal account;
           submodules: recursive                 #       make the contracts repo public or use a github Machine User instead
                                                 # Note: Token Expires on Sun, Dec 11 2022
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
 
       # Need foundry to build medusa contracts for typechain bindings
       - name: Install Foundry
@@ -30,18 +33,16 @@ jobs:
         with:
           version: nightly
 
-      - uses: volta-cli/action@v4
-
-      - run: npm ci
+      - run: yarn install --frozen-lockfile
 
       - name: Build Bindings
-        run: npm run build:bindings
+        run: yarn build:bindings
 
       - name: Compile typescript into javascript
-        run: npm run build
+        run: yarn build
 
       - name: Lint check
-        run: npm run lint
+        run: yarn lint
 
       - name: Test
-        run: npm test
+        run: yarn test
