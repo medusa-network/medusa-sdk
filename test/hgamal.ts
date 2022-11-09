@@ -1,15 +1,11 @@
 import * as hgamal from "../src/hgamal";
-import { BigNumber } from "ethers";
-import { newKeypair, KeyPair } from "../src";
+import { newKeypair } from "../src";
 import { init, suite, G1 } from "../src/bn254_iden";
-import { Scalar, Point, Curve, EVMG1Point } from "../src/algebra";
 import * as dleq from "../src/dleq";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
-import { HGamalSuite } from "../src/encrypt";
 import { ShaTranscript } from "../src/transcript";
-import { receiveMessageOnPort } from "worker_threads";
 import { reencrypt } from "./utils";
 
 export function pointFromXY(x: string, y: string): G1 {
@@ -17,19 +13,20 @@ export function pointFromXY(x: string, y: string): G1 {
   // so the fromEVM calls already reverse the array. Therefore we need to give it
   // in a reversed form first, (the hex from Rust comes in littleendian), so we need
   // to give it in big endian form.
-  const xa = arrayToBn(arrayify(x), true, 32);
-  const ya = arrayToBn(arrayify(y), true, 32);
-  const p = suite.point().fromEvm(new EVMG1Point(xa, ya));
+  const xa = arrayToBn(arrayify(x), true);
+  const ya = arrayToBn(arrayify(y), true);
+  const p = suite.point().fromEvm({ x: xa, y: ya });
   assert(p.isOk());
   return p._unsafeUnwrap();
 }
+
 export function transcript(): ShaTranscript {
   return new ShaTranscript();
 }
+
 function compareEqual(p1: G1, p2: G1): boolean {
   return p1.equal(p2);
 }
-
 
 describe("hgamal", () => {
   before(async () => {
@@ -144,11 +141,11 @@ describe("hgamal", () => {
 
     // Then check if reconstructing the shared key gives the same as expected
     const shared = pointFromXY(data.shared.x, data.shared.y);
-    const tmp_priv = suite
+    const tmpPriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.random_priv),true))
+      .fromEvm(arrayToBn(arrayify(data.random_priv), true))
       ._unsafeUnwrap();
-    const expShared = suite.point().set(proxyPub).mul(tmp_priv);
+    const expShared = suite.point().set(proxyPub).mul(tmpPriv);
     assert.ok(compareEqual(shared, expShared));
 
     // Then check if the HKDF step is done in a similar fashion in JS and rust
@@ -165,7 +162,8 @@ describe("hgamal", () => {
       arrayify(data.cipher.cipher),
       /// give random dleq elements because it's not what we are interested in here
       suite.point(),
-      dleq.Proof.default(suite));
+      dleq.Proof.default(suite)
+    );
     // we compute the reencryption
     const reencExp = reencrypt(
       suite,
