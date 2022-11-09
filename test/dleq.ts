@@ -1,16 +1,12 @@
 import assert from "assert";
 import { artifacts, ethers } from "hardhat";
 import { init, suite } from "../src/bn254";
-import * as sha256 from "fast-sha256";
-import { newKeypair } from "../src/index";
-import { hexlify, arrayify } from "ethers/lib/utils";
 import { ShaTranscript } from "../src/transcript";
 import { prove, verify } from "../src/dleq";
 import { Playground, Playground__factory } from "../typechain";
-import { ABIString, ABIAddress, ABIBytes32, ABIUint256 } from "../src/encoding";
+import { ABIString, ABIAddress, ABIBytes32 } from "../src/encoding";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Label } from "../src/encrypt";
-import { BigNumber } from "ethers";
 
 describe("dleq proof", () => {
   let owner: SignerWithAddress;
@@ -26,13 +22,12 @@ describe("dleq proof", () => {
   });
   it("typescript verification", () => {
     const secret = suite.scalar().random();
-    const b2 = suite.base2();
     const rg2 = suite.base2().mul(secret);
     const rg1 = suite.base1().mul(secret);
-    const prover_transcript = new ShaTranscript();
-    const proof = prove(suite, prover_transcript, secret, rg1, rg2);
-    const verifier_transcript = new ShaTranscript();
-    const valid = verify(suite, verifier_transcript, rg1, rg2, proof);
+    const proverTranscript = new ShaTranscript();
+    const proof = prove(suite, proverTranscript, secret, rg1, rg2);
+    const verifierTranscript = new ShaTranscript();
+    const valid = verify(suite, verifierTranscript, rg1, rg2, proof);
     assert.ok(valid);
 
     proof.toEvm();
@@ -40,9 +35,9 @@ describe("dleq proof", () => {
     proof.f = suite.scalar().random();
     assert.ok(!verify(suite, new ShaTranscript(), rg1, rg2, proof));
 
-    const invalid_transcript = new ShaTranscript();
-    invalid_transcript.append(ABIString("fiat shamir is the weakness"));
-    assert.ok(!verify(suite, invalid_transcript, rg1, rg2, proof));
+    const invalidTranscript = new ShaTranscript();
+    invalidTranscript.append(ABIString("fiat shamir is the weakness"));
+    assert.ok(!verify(suite, invalidTranscript, rg1, rg2, proof));
   });
 
   it("onchain transcript verification", async () => {
@@ -75,13 +70,11 @@ describe("dleq proof", () => {
     const rg2 = suite.base2().mul(secret);
     // fake label
     const label = Label.from(rg1, owner.address, owner.address);
-    // const label = new BigNumber.from(100);
-    // const labelABI = ABIUint256(label);
-    const prover_transcript = new ShaTranscript().append(label);
-    const proof = prove(suite, prover_transcript, secret, rg1, rg2);
+    const proverTranscript = new ShaTranscript().append(label);
+    const proof = prove(suite, proverTranscript, secret, rg1, rg2);
     // verify still locally
-    const verifier_transcript = new ShaTranscript().append(label);
-    const valid = verify(suite, verifier_transcript, rg1, rg2, proof);
+    const verifierTranscript = new ShaTranscript().append(label);
+    const valid = verify(suite, verifierTranscript, rg1, rg2, proof);
     assert.ok(valid, "local verification fails");
     // verify onchain
     const check = await testContract.verifyDLEQProof(

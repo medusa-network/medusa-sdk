@@ -199,7 +199,7 @@ export class G1
   }
 }
 
-class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
+export class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   scalar(): Fr {
     return new Fr();
   }
