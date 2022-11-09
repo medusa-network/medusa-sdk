@@ -30,6 +30,7 @@
     "hardhat": "^2.9.5",
     "js-crypto-hkdf": "^1.0.4",
     "mcl-wasm": "^1.0.2",
+    "minimatch": "3.0.5",
     "neverthrow": "^4.3.1",
     "tweetnacl": "^1.0.3"
   },
