@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
-// @ts-ignore
-import { buildBn128, WasmCurve } from "ffjavascript";
+import { buildBn128, WasmCurve, WasmField1, BN254 } from "ffjavascript";
+
 import {
   EncodingRes,
   EncodingError,
   EVMEncoding,
   ABIEncoder,
+  ABIEncoded,
 } from "./encoding";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
@@ -19,22 +19,18 @@ export async function init(): Promise<void> {
   IG1 = curve.G1;
   IFr = curve.Fr;
   suite = new Bn254Suite();
-  //    // x
-  //    BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
-  //    // y
-  //    BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
-  // ))._unsafeUnwrap());
 }
 
 export class Fr
   implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder
 {
-  f: any;
+  f: WasmField1;
+
   constructor() {
     this.f = IFr.zero;
   }
 
-  abiEncode(): [Array<string>, Array<any>] {
+  abiEncode(): ABIEncoded {
     return [["uint256"], [this.toEvm()]];
   }
 
@@ -43,7 +39,6 @@ export class Fr
     return this;
   }
 
-  // @ts-ignore
   mul(e: Fr): this {
     this.f = IFr.mul(this.f, e.f);
     return this;
@@ -107,15 +102,15 @@ export class Fr
 }
 
 export class G1
-  // @ts-ignore
   implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
 {
-  p: any;
+  p: Uint8Array;
+
   constructor() {
     this.p = IG1.g;
   }
 
-  abiEncode(): [Array<string>, Array<any>] {
+  abiEncode(): ABIEncoded {
     const evm = this.toEvm();
     return [
       ["uint256", "uint256"],
@@ -139,7 +134,8 @@ export class G1
   }
 
   zero(): this {
-    return IG1.zero;
+    this.p = IG1.zero;
+    return this;
   }
 
   random(): this {
@@ -151,8 +147,8 @@ export class G1
 
   // not yet available
   // setHashOf(m: string): this {
-  //     this.p.setHashOf(m);
-  //     return this;
+  //   this.p.setHashOf(m);
+  //   return this;
   // }
 
   one(): this {
@@ -203,7 +199,6 @@ export class G1
   }
 }
 
-// @ts-ignore
 class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   scalar(): Fr {
     return new Fr();
@@ -232,8 +227,8 @@ class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   }
 }
 
-let curve: WasmCurve;
+let curve: BN254;
 let IG1: WasmCurve;
-let IFr: WasmCurve;
+let IFr: WasmField1;
 let suite: Bn254Suite;
-export { suite };
+export { suite, curve };
