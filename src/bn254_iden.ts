@@ -186,7 +186,7 @@ export class G1
 
   toEvm(): EVMG1Point {
     const obj = IG1.toObject(IG1.toAffine(this.p));
-    return new EVMG1Point(BigNumber.from(obj[0]), BigNumber.from(obj[1]));
+    return { x: BigNumber.from(obj[0]), y: BigNumber.from(obj[1]) };
   }
 
   fromEvm(p: EVMG1Point): EncodingRes<this> {

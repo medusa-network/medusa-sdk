@@ -66,7 +66,8 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     return ABIUint256(BigNumber.from(this.label)).abiEncode();
   }
 }
-export class EncryptionBundle<
+
+export interface EncryptionBundle<
   KeyCipherEVM,
   KeyCipher extends EVMEncoding<KeyCipherEVM>
 > {
@@ -74,10 +75,6 @@ export class EncryptionBundle<
   encryptedData: Uint8Array;
   /// key used to encrypt data, encrypted using Medusa, must be submitted to Medusa
   encryptedKey: KeyCipher;
-  constructor(d: Uint8Array, k: KeyCipher) {
-    this.encryptedData = d;
-    this.encryptedKey = k;
-  }
 }
 
 export class HGamalSuite<
@@ -122,7 +119,10 @@ export class HGamalSuite<
       transcript
     );
     if (medusaCipher.isOk()) {
-      return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
+      return ok({
+        encryptedData: fullMessage,
+        encryptedKey: medusaCipher.value,
+      });
     } else {
       return err(medusaCipher.error);
     }

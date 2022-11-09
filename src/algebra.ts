@@ -25,16 +25,14 @@ export interface Scalar
   /// scalar is not in the right range. THis method
   /// is to be used to create arrays from any streams
   /// of bytes (think transcript hashing).
-  fromBytes(array: Uint8Array): this;
+
+  // TODO: Should we remove this?
+  // fromBytes(array: Uint8Array): this;
 }
 
-export class EVMG1Point {
+export interface EVMG1Point {
   x: BigNumber;
   y: BigNumber;
-  constructor(x: BigNumber, y: BigNumber) {
-    this.x = x;
-    this.y = y;
-  }
 }
 
 export interface Point<S extends Scalar>

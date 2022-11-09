@@ -8,25 +8,15 @@ import { bnToArray } from "./utils";
 import { EVMTranscript } from "./transcript";
 import * as dleq from "./dleq";
 
-export class EVMCipher {
+export interface EVMCipher {
   random: EVMG1Point;
   cipher: Uint8Array;
   // random element on the second base r*G2
   // used by the DLEQ proof.
   random2: EVMG1Point;
   dleq: dleq.EVMProof;
-  constructor(
-    r: EVMG1Point,
-    c: Uint8Array,
-    rg2: EVMG1Point,
-    proof: dleq.EVMProof
-  ) {
-    this.random = r;
-    this.cipher = c;
-    this.random2 = rg2;
-    this.dleq = proof;
-  }
 }
+
 export class Ciphertext<S extends Scalar, P extends Point<S>>
   implements EVMEncoding<EVMCipher>
 {
@@ -54,12 +44,12 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   }
 
   toEvm(): EVMCipher {
-    return new EVMCipher(
-      this.random.toEvm(),
-      this.cipher,
-      this.random2.toEvm(),
-      this.dleq.toEvm()
-    );
+    return {
+      random: this.random.toEvm(),
+      cipher: this.cipher,
+      random2: this.random2.toEvm(),
+      dleq: this.dleq.toEvm(),
+    };
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
@@ -77,11 +67,8 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   }
 }
 
-export class EVMMedusaReencryption {
+export interface EVMMedusaReencryption {
   random: EVMG1Point;
-  constructor(r: EVMG1Point) {
-    this.random = r;
-  }
 }
 
 /// Ciphertext that Medusa emits to the smart contract
