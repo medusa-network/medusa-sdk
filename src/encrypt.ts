@@ -1,16 +1,71 @@
 import { KeyPair, newKeypair } from "./index";
-import { Scalar, Point, Curve } from "./algebra";
+import { Scalar, Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
-import { curve, G1 } from "./bn254";
 import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
 import * as hgamal from "./hgamal";
-import { EVMEncoding } from "./encoding";
+import {
+  EVMEncoding,
+  ABIEncoder,
+  ABIAddress,
+  EncodingRes,
+  ABIUint256,
+} from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
-import { encodeBase64, decodeBase64 } from "tweetnacl-util";
+import { DleqSuite } from "./dleq";
+import { ShaTranscript } from "./transcript";
+import { BigNumber, ethers } from "ethers";
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
 
+/// Label needed to produce a valid ciphertext proof
+export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
+  label: string;
+  constructor(
+    medusaKey: ABIEncoder,
+    platformAddress: string,
+    encryptor: string
+  ) {
+    if (!ethers.utils.isAddress(platformAddress)) {
+      throw new Error(
+        "invalid platform address specified for label: " + platformAddress
+      );
+    }
+    if (!ethers.utils.isAddress(encryptor)) {
+      throw new Error(
+        "invalid encryptor address specified for label: " + encryptor
+      );
+    }
+    this.label = new ShaTranscript()
+      // uint256 label = uint256(sha256(
+      //    abi.encode(distKey.x, distKey.y, msg.sender, _encryptor)
+      // ));
+      .append(medusaKey)
+      .append(ABIAddress(platformAddress))
+      .append(ABIAddress(encryptor))
+      .digest();
+  }
+
+  toEvm(): BigNumber {
+    return BigNumber.from(this.label);
+  }
+
+  fromEvm(t: BigNumber): EncodingRes<this> {
+    throw new Error("Method not implemented.");
+  }
+
+  static from<S extends Scalar, P extends Point<S>>(
+    medusaKey: P,
+    platformAddress: string,
+    encryptor: string
+  ): Label {
+    return new Label(medusaKey, platformAddress, encryptor);
+  }
+
+  abiEncode(): [string[], any[]] {
+    return ABIUint256(BigNumber.from(this.label)).abiEncode();
+  }
+}
 export class EncryptionBundle<
   KeyCipherEVM,
   KeyCipher extends EVMEncoding<KeyCipherEVM>
@@ -28,19 +83,20 @@ export class EncryptionBundle<
 export class HGamalSuite<
   S extends Scalar,
   P extends Point<S>,
-  C extends Curve<S, P>
+  Suite extends DleqSuite<S, P>
 > {
-  curve: C;
+  suite: Suite;
 
-  constructor(curve: C) {
-    this.curve = curve;
+  constructor(suite: Suite) {
+    this.suite = suite;
   }
 
-  /// method to encrypt some data to Medusa.
+  /// method to encrypt data to Medusa.
   // XXX can't make it static because can't access C P or S then...
   public async encryptToMedusa(
     data: Uint8Array,
-    medusaKey: P
+    medusaKey: P,
+    label: Label
   ): Promise<
     Result<
       EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
@@ -55,8 +111,16 @@ export class HGamalSuite<
     fullMessage.set(nonce);
     fullMessage.set(box, nonce.length);
 
+    /// label will output its digest so in the end we have
+    /// H ( H(label), ... )
+    const transcript = new ShaTranscript().append(label);
     /// then using the Medusa encryption
-    const medusaCipher = await hgamal.encrypt(this.curve, medusaKey, key);
+    const medusaCipher = await hgamal.encrypt(
+      this.suite,
+      medusaKey,
+      key,
+      transcript
+    );
     if (medusaCipher.isOk()) {
       return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
     } else {
@@ -69,7 +133,7 @@ export class HGamalSuite<
   /// way of asking to reencrypt) and the secret part must be kept and given to
   /// "oneTimeDecrypt" when the reencryption arrived.
   public keyForDecryption(): KeyPair<S, P> {
-    return newKeypair(this.curve);
+    return newKeypair(this.suite);
   }
 
   /// Decrypts a reencryption by medusa of the given bundle, using the
@@ -77,15 +141,18 @@ export class HGamalSuite<
   public async decryptFromMedusa(
     secret: S,
     medusaKey: P,
+    // original ciphertext of the data and more importantly the key
     bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
-    reencryption: hgamal.Ciphertext<S, P>
+    // the reencryption of the key by the medusa network
+    reencryption: hgamal.MedusaReencryption<S, P>
   ): Promise<hgamal.DecryptionRes> {
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
-      this.curve,
+      this.suite,
       secret,
       medusaKey,
-      reencryption
+      bundle.encryptedKey, // original cipher of the key
+      reencryption // reencryption done by medusa
     );
     if (!r.isOk()) {
       return err(r.error);

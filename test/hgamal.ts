@@ -1,104 +1,55 @@
-import * as hgamal from "./../src/hgamal";
+import * as hgamal from "../src/hgamal";
 import { BigNumber } from "ethers";
 import { newKeypair, KeyPair } from "../src";
-import { init, curve, G1 } from "../src/bn254";
-import { Scalar, Point, Curve } from "../src/algebra";
-
+import { init, suite, G1 } from "../src/bn254_iden";
+import { Scalar, Point, Curve, EVMG1Point } from "../src/algebra";
+import * as dleq from "../src/dleq";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
 import { HGamalSuite } from "../src/encrypt";
+import { ShaTranscript } from "../src/transcript";
+import { receiveMessageOnPort } from "worker_threads";
+import { reencrypt } from "./utils";
 
-function reencrypt<S extends Scalar, P extends Point<S>>(
-  c: Curve<S, P>,
-  kp: KeyPair<S, P>,
-  recipient: P,
-  cipher: hgamal.Ciphertext<S, P>
-): hgamal.Ciphertext<S, P> {
-  // Input is { rG, H(rP) ^ m }
-  // where P=pG is public key of proxy (kp)
-  // B=bG is the recipient key
-  // Output is
-  // prG + pB = p(rG + B)
-  // see hgamal script for more details
-  const random = c.point().set(recipient).add(cipher.random).mul(kp.secret);
-  const reenc = new hgamal.Ciphertext(random, cipher.cipher);
-  return reenc;
-}
-
-function pointFromXY(x: string, y: string): G1 {
+export function pointFromXY(x: string, y: string): G1 {
   // We reverse manually first here because EVM etherjs will read in bigendian
   // so the fromEVM calls already reverse the array. Therefore we need to give it
   // in a reversed form first, (the hex from Rust comes in littleendian), so we need
   // to give it in big endian form.
-  const xa = arrayToBn(arrayify(x), true);
-  const ya = arrayToBn(arrayify(y), true);
-  const p = curve.point().fromEvm({ x: xa, y: ya });
+  const xa = arrayToBn(arrayify(x), true, 32);
+  const ya = arrayToBn(arrayify(y), true, 32);
+  const p = suite.point().fromEvm(new EVMG1Point(xa, ya));
   assert(p.isOk());
   return p._unsafeUnwrap();
 }
-
+export function transcript(): ShaTranscript {
+  return new ShaTranscript();
+}
 function compareEqual(p1: G1, p2: G1): boolean {
-  return curve
-    .point()
-    .set(p1)
-    .add(curve.point().set(p2).neg())
-    .equal(curve.point().zero());
+  return p1.equal(p2);
 }
 
-describe("medusa encryption", () => {
+
+describe("hgamal", () => {
   before(async () => {
     await init();
   });
 
-  it("can decrypt large message", async () => {
-    const proxy = newKeypair(curve);
-    const suite = new HGamalSuite(curve);
-    const bob = suite.keyForDecryption();
-    const msgStr =
-      "None of us is great enough for such a task. But in all circumstances of life, in obscurity or temporary fame, cast in the irons of tyranny or for a time free to express himself, the writer can win the heart of a living community that will justify him, on the one condition that he will accept to the limit of his abilities the two tasks that constitute the greatness of his craft: the service of truth and the service of liberty. Because his task is to unite the greatest possible number of people, his art must not compromise with lies and servitude which, wherever they rule, breed solitude. Whatever our personal weaknesses may be, the nobility of our craft will always be rooted in two commitments, difficult to maintain: the refusal to lie about what one knows and the resistance to oppression.";
-    const msgBuff = new TextEncoder().encode(msgStr.padEnd(32, "\0"));
-    const c = await suite.encryptToMedusa(msgBuff, proxy.pubkey);
-    assert.ok(c.isOk());
-    const bundle = c._unsafeUnwrap();
-    const reencryption = reencrypt(
-      curve,
-      proxy,
-      bob.pubkey,
-      bundle.encryptedKey
-    );
-    const m = await suite.decryptFromMedusa(
-      bob.secret,
-      proxy.pubkey,
-      bundle,
-      reencryption
-    );
-    assert.ok(m.isOk());
-    const found = m._unsafeUnwrap();
-    let canonical: string = new TextDecoder().decode(found);
-    canonical = canonical.replaceAll("\0", "");
-    assert.strictEqual(msgStr, canonical);
-  });
-});
-
-describe("hgamal encryption", () => {
-  before(async () => {
-    await init();
-  });
-
-  it("decryption of reencryption", async () => {
-    const proxy = newKeypair(curve);
-    const bob = newKeypair(curve);
+  it("decryption of medusa reencryption", async () => {
+    const proxy = newKeypair(suite);
+    const bob = newKeypair(suite);
     const msgStr = "Hello Bob";
     const msgBuff = new TextEncoder().encode(msgStr.padEnd(32, "\0"));
-    const c = await hgamal.encrypt(curve, proxy.pubkey, msgBuff);
+    const c = await hgamal.encrypt(suite, proxy.pubkey, msgBuff, transcript());
     assert.ok(c.isOk());
     const ciphertext = c._unsafeUnwrap();
-    const reencryption = reencrypt(curve, proxy, bob.pubkey, ciphertext);
+    const reencryption = reencrypt(suite, proxy, bob.pubkey, ciphertext);
     const m = await hgamal.decryptReencryption(
-      curve,
+      suite,
       bob.secret,
       proxy.pubkey,
+      ciphertext,
       reencryption
     );
     assert.ok(m.isOk());
@@ -176,28 +127,28 @@ describe("hgamal encryption", () => {
 
     // First check if the proxy keys are correctly decoded
     const proxyPub = pointFromXY(data.proxypub.x, data.proxypub.y);
-    const proxyPriv = curve
+    const proxyPriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.proxypriv)))
+      .fromEvm(arrayToBn(arrayify(data.proxypriv), true))
       ._unsafeUnwrap();
-    const expProxyPub = curve.point().one().mul(proxyPriv);
+    const expProxyPub = suite.point().one().mul(proxyPriv);
     assert.ok(compareEqual(expProxyPub, proxyPub));
 
-    const bobpriv = curve
+    const bobpriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.bobpriv)))
+      .fromEvm(arrayToBn(arrayify(data.bobpriv), true))
       ._unsafeUnwrap();
-    const bobpub = curve.point().one().mul(curve.scalar().set(bobpriv));
+    const bobpub = suite.point().one().mul(suite.scalar().set(bobpriv));
     const bobpubFound = pointFromXY(data.bobpub.x, data.bobpub.y);
     assert.ok(compareEqual(bobpub, bobpubFound));
 
     // Then check if reconstructing the shared key gives the same as expected
     const shared = pointFromXY(data.shared.x, data.shared.y);
-    const tmp_priv = curve
+    const tmp_priv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.random_priv)))
+      .fromEvm(arrayToBn(arrayify(data.random_priv),true))
       ._unsafeUnwrap();
-    const expShared = curve.point().set(proxyPub).mul(tmp_priv);
+    const expShared = suite.point().set(proxyPub).mul(tmp_priv);
     assert.ok(compareEqual(shared, expShared));
 
     // Then check if the HKDF step is done in a similar fashion in JS and rust
@@ -209,11 +160,16 @@ describe("hgamal encryption", () => {
 
     // Then check if reencrypting yourself gives expected result
     const random = pointFromXY(data.cipher.random.x, data.cipher.random.y);
-    const cipher = new hgamal.Ciphertext(random, arrayify(data.cipher.cipher));
+    const cipher = new hgamal.Ciphertext(
+      random,
+      arrayify(data.cipher.cipher),
+      /// give random dleq elements because it's not what we are interested in here
+      suite.point(),
+      dleq.Proof.default(suite));
     // we compute the reencryption
     const reencExp = reencrypt(
-      curve,
-      { secret: proxyPriv, pubkey: curve.point().set(proxyPub) },
+      suite,
+      { secret: proxyPriv, pubkey: suite.point().set(proxyPub) },
       bobpub,
       cipher
     );
@@ -222,17 +178,13 @@ describe("hgamal encryption", () => {
       data.reenccipher.random.x,
       data.reenccipher.random.y
     );
-    const reencFound = new hgamal.Ciphertext(
-      reencRandom,
-      arrayify(data.reenccipher.cipher)
-    );
+    const reencFound = new hgamal.MedusaReencryption(reencRandom);
     assert.ok(compareEqual(reencFound.random, reencExp.random));
-    assert.strictEqual(hexlify(reencFound.cipher), hexlify(reencExp.cipher));
 
     // Then tries to check computation of the decryption for reencryption
     // intermediate elements
     // First -(proxyPub * bobpriv)
-    const negComputed = curve.point().set(proxyPub).mul(bobpriv).neg();
+    const negComputed = suite.point().set(proxyPub).mul(bobpriv).neg();
     const negFound = pointFromXY(data.reencneg.x, data.reencneg.y);
     assert.ok(compareEqual(negComputed, negFound));
     // Then add that to the random component proxyPub*randomScalar + proxyPriv*bobPub
@@ -258,9 +210,10 @@ describe("hgamal encryption", () => {
 
     // Then tries to decrypt for yourself
     const m = await hgamal.decryptReencryption(
-      curve,
+      suite,
       bobpriv,
       proxyPub,
+      cipher,
       reencFound
     );
     assert.ok(m.isOk());

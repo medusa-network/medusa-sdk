@@ -2,12 +2,14 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber, Contract, Signer } from "ethers";
-import { IEncryptionOracle, Playground__factory } from "../typechain";
-import { init, curve } from "../src/bn254";
+import { dleqBn128Sol, Playground__factory } from "../typechain";
+import { Proof as DleqProof } from "../src/dleq";
+import { init, suite as curve } from "../src/bn254";
 import { newKeypair } from "../src/index";
 import { hexlify, arrayify, randomBytes } from "ethers/lib/utils";
 import { arrayToBn, bnToArray } from "../src/utils";
 import assert from "assert";
+import { EVMG1Point } from "../src/algebra";
 
 describe("Test Encoding ", function () {
   before(async () => {
@@ -34,14 +36,14 @@ describe("Test Encoding ", function () {
     // generate random 32 byte bigint
     const value = randomBytes(32); // 32 bytes = 256 bits
     const cipher = BigNumber.from(hexlify(value));
-    await test.logCipher(1, { random: random.toEvm(), cipher: cipher });
+    await test.logCipher(1, { random: random.toEvm(), cipher: cipher, random2: random.toEvm(), dleq: DleqProof.default(curve).toEvm() });
     const filter = test.filters.NewLogCipher(1);
     const logs = await test.queryFilter(filter, 0);
     expect(logs.length).to.be.eq(1);
     const event = logs[0].args;
     expect(event.id).to.be.eq(1);
     expect(event.cipher).to.be.eq(cipher);
-    const r = curve.point().fromEvm({ x: event.rx, y: event.ry });
+    const r = curve.point().fromEvm(new EVMG1Point(event.rx, event.ry));
     expect(r.isOk()).to.be.true;
     expect(r._unsafeUnwrap().equal(random)).to.be.true;
   });
@@ -55,7 +57,7 @@ describe("Test Encoding ", function () {
     );
 
     // Note: Errors if values are not deserialized correctly to 32-bytes
-    curve.point().fromEvm({ x, y });
+    curve.point().fromEvm(new EVMG1Point(x, y));
   });
 
   it("decode g1point", async () => {

@@ -37,15 +37,11 @@ jobs:
       - name: Build Bindings
         run: npm run build:bindings
 
+      - name: Compile typescript into javascript
+        run: npm run build
+
       - name: Lint check
         run: npm run lint
 
       - name: Test
         run: npm test
-
-      # - name: Release
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      #   run: npm run semantic-release
-

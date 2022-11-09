@@ -1,20 +1,42 @@
-import { Curve, Atom, Scalar, Point, EVMPoint } from "./algebra";
+import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
 
-import { EncodingRes, EncodingError, EVMEncoding } from "./encoding";
+import {
+  EncodingRes,
+  EncodingError,
+  EVMEncoding,
+  ABIEncoder,
+} from "./encoding";
 import * as mcl from "mcl-wasm";
 import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
 import { ok, err } from "neverthrow";
 import { BigNumber } from "ethers";
+import { ToBytes } from "../src/transcript";
+import { DleqSuite } from "./dleq";
+import { G2 } from "mcl-wasm";
 
+/// Initiatlization of the suite and some constants
 export async function init(): Promise<void> {
   await mcl.init(mcl.BN_SNARK1);
-  mcl.setMapToMode(mcl.BN254);
+  // mcl.setMapToMode(mcl.BN254);
+  suite = new Bn254Suite(new G1().random());
+  // suite = new Bn254Suite(new G1().fromEvm(new EVMG1Point(
+  //  // x
+  //  BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
+  //  // y
+  //  BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
+  // ))._unsafeUnwrap());
 }
 
-export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber> {
+export class Fr
+  implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder
+{
   f: mcl.Fr;
   constructor() {
     this.f = new mcl.Fr();
+  }
+
+  abiEncode(): [Array<string>, Array<any>] {
+    return [["uint256"], [this.f.serialize()]];
   }
 
   add(e: Fr): this {
@@ -66,6 +88,11 @@ export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber> {
     return ok(this);
   }
 
+  fromBytes(array: Uint8Array): this {
+    this.f.setLittleEndianMod(array);
+    return this;
+  }
+
   set(e: Fr): this {
     const arr = e.f.serialize();
     this.deserialize(arr)._unsafeUnwrap();
@@ -82,10 +109,22 @@ export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber> {
   }
 }
 
-export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
+export class G1
+  implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
+{
   p: mcl.G1;
   constructor() {
     this.p = new mcl.G1();
+  }
+
+  abiEncode(): [Array<string>, Array<any>] {
+    const evm = this.toEvm();
+    const xarray = bnToArray(evm.x, false, 32);
+    const yarray = bnToArray(evm.y, false, 32);
+    return [
+      ["uint256", "uint256"],
+      [xarray, yarray],
+    ];
   }
 
   add(e: G1): this {
@@ -123,6 +162,8 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
   }
 
   equal(e: G1): boolean {
+    this.p.normalize();
+    e.p.normalize();
     return this.p.isEqual(e.p);
   }
 
@@ -168,24 +209,26 @@ export class G1 implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMPoint> {
     return ok(this);
   }
 
-  toEvm(): EVMPoint {
+  toEvm(): EVMG1Point {
     this.p.normalize();
     const x = BigNumber.from(this.p.getX().serialize().reverse());
     const y = BigNumber.from(this.p.getY().serialize().reverse());
-    return {
-      x: x,
-      y: y,
-    };
+    return new EVMG1Point(x, y);
   }
 
-  fromEvm(p: EVMPoint): EncodingRes<this> {
+  fromEvm(p: EVMG1Point): EncodingRes<this> {
     const x = bnToArray(p.x, true, 32);
     const y = bnToArray(p.y, true, 32);
     return this.fromXY(x, y);
   }
 }
+class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
+  _base2: G1;
 
-class Bn254Curve implements Curve<Fr, G1> {
+  constructor(base2: G1) {
+    this._base2 = base2;
+  }
+
   scalar(): Fr {
     return new Fr();
   }
@@ -193,7 +236,15 @@ class Bn254Curve implements Curve<Fr, G1> {
   point(): G1 {
     return new G1();
   }
+
+  base1(): G1 {
+    return new G1().one();
+  }
+
+  base2(): G1 {
+    return new G1().set(this._base2);
+  }
 }
 
-const curve = new Bn254Curve();
-export { curve };
+let suite: Bn254Suite;
+export { suite };
