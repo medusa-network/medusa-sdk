@@ -1,6 +1,6 @@
 import * as hgamal from "../src/hgamal";
 import { newKeypair } from "../src";
-import { init, suite, G1 } from "../src/bn254_iden";
+import { init, suite, G1 } from "../src/bn254";
 import * as dleq from "../src/dleq";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";

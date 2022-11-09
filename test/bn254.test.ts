@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 import { WasmCurve, WasmField1 } from "ffjavascript";
 import { ethers } from "hardhat";
 import { Playground__factory } from "../typechain";
-import { suite, curve, init } from "../src/bn254_iden";
+import { suite, curve, init } from "../src/bn254";
 import { EVMG1Point } from "../src/algebra";
 
 describe("use ident", async () => {

@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
 import { Playground__factory } from "../typechain";
 import { Proof as DleqProof } from "../src/dleq";
-import { init, suite as curve } from "../src/bn254_iden";
+import { init, suite as curve } from "../src/bn254";
 import { hexlify, randomBytes } from "ethers/lib/utils";
 import assert from "assert";
 

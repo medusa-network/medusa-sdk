@@ -2,7 +2,7 @@ import * as hgamal from "../src/hgamal";
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
 import { newKeypair, KeyPair } from "../src";
-import { init, suite as curve, G1 } from "../src/bn254_iden";
+import { init, suite as curve, G1 } from "../src/bn254";
 import { Scalar, Point, Curve } from "../src/algebra";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";
@@ -11,8 +11,10 @@ import { HGamalSuite, Label } from "../src/encrypt";
 import { ShaTranscript } from "../src/transcript";
 import { reencrypt } from "./utils";
 import * as sha256 from "fast-sha256";
-import { BN254EncryptionOracle__factory, Playground__factory } from "../typechain";
-
+import {
+  BN254EncryptionOracle__factory,
+  Playground__factory,
+} from "../typechain";
 
 describe("medusa encryption", () => {
   const msgStr =
@@ -34,14 +36,26 @@ describe("medusa encryption", () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     // deploy the oracle first so we can use  it _via_ the playground to simulate an app
-    const oracleAddress = await testContract.deployOracle(medusa.pubkey.toEvm());
-    const label = Label.from(medusa.pubkey, testContract.address, owner.address);
-    const ciphertext = (await suite.encryptToMedusa(msgBuff, medusa.pubkey, label))._unsafeUnwrap();
+    const oracleAddress = await testContract.deployOracle(
+      medusa.pubkey.toEvm()
+    );
+    const label = Label.from(
+      medusa.pubkey,
+      testContract.address,
+      owner.address
+    );
+    const ciphertext = (
+      await suite.encryptToMedusa(msgBuff, medusa.pubkey, label)
+    )._unsafeUnwrap();
     // only submit the key, the data is submitted to IPFS or something
     const cipherEVM = ciphertext.encryptedKey.toEvm();
     const link = new TextEncoder().encode("thisisthelink");
     const encryptor = owner.address;
-    const request_id = await testContract.submitCiphertextToOracle(cipherEVM, link, encryptor);
+    const request_id = await testContract.submitCiphertextToOracle(
+      cipherEVM,
+      link,
+      encryptor
+    );
     assert.ok(request_id != 0);
   });
 
@@ -61,7 +75,7 @@ describe("medusa encryption", () => {
       bob.secret,
       medusa.pubkey,
       bundle,
-      reencryption,
+      reencryption
     );
     assert.ok(m.isOk());
     const found = m._unsafeUnwrap();

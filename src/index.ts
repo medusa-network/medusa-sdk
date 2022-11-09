@@ -1,7 +1,7 @@
 import { BigNumber, utils } from "ethers";
 import { Point, Scalar, Curve } from "./algebra";
 
-export { suite, init } from "./bn254_iden";
+export { suite, init } from "./bn254";
 export {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
