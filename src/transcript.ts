@@ -1,10 +1,6 @@
 import { BigNumber, ethers } from "ethers";
-import { arrayify } from "ethers/lib/utils";
-import * as sha256 from "fast-sha256";
-import { ok } from "neverthrow";
-import { AstPath } from "prettier";
 import { Scalar } from "./algebra";
-import { EncodingRes, ABIEncoder } from "./encoding";
+import { ABIEncoder, ABIEncodedLabels, ABIEncodedValues } from "./encoding";
 
 export interface ToBytes {
   serialize(): Uint8Array;
@@ -21,8 +17,8 @@ export interface EVMTranscript {
 }
 
 export class ShaTranscript implements EVMTranscript {
-  elements: Array<any>;
-  types: Array<string>;
+  elements: ABIEncodedValues;
+  types: ABIEncodedLabels;
 
   constructor() {
     this.elements = [];

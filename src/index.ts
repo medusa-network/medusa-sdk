@@ -2,9 +2,12 @@ import { BigNumber, utils } from "ethers";
 import { Point, Scalar, Curve } from "./algebra";
 
 export { suite, init } from "./bn254_iden";
-export { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
+export {
+  Ciphertext as HGamalCipher,
+  EVMCipher as HGamalEVMCipher,
+} from "./hgamal";
 export { HGamalSuite, EncryptionBundle, Label } from "./encrypt";
-export { EVMG1Point as EVMPoint } from "./algebra";
+export { EVMG1Point } from "./algebra";
 
 export type PublicKey<S extends Scalar> = Point<S>;
 export type SecretKey = Scalar;

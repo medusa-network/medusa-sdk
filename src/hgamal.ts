@@ -1,5 +1,5 @@
 import { Curve, EVMG1Point, Point, Scalar } from "./algebra";
-import { KeyPair, PublicKey, SecretKey } from "./index";
+import { PublicKey, SecretKey } from "./index";
 import { ok, err, Result } from "neverthrow";
 import * as crypto from "crypto";
 import assert from "assert";

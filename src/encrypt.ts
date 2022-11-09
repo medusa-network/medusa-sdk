@@ -1,7 +1,10 @@
 import { KeyPair, newKeypair } from "./index";
 import { Scalar, Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
-import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
+import {
+  Ciphertext as HGamalCipher,
+  EVMCipher as HGamalEVMCipher,
+} from "./hgamal";
 import * as hgamal from "./hgamal";
 import {
   EVMEncoding,
@@ -9,6 +12,7 @@ import {
   ABIAddress,
   EncodingRes,
   ABIUint256,
+  ABIEncoded,
 } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
@@ -62,7 +66,7 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     return new Label(medusaKey, platformAddress, encryptor);
   }
 
-  abiEncode(): [string[], any[]] {
+  abiEncode(): ABIEncoded {
     return ABIUint256(BigNumber.from(this.label)).abiEncode();
   }
 }
@@ -96,7 +100,7 @@ export class HGamalSuite<
     label: Label
   ): Promise<
     Result<
-      EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
+      EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
       hgamal.EncryptionError
     >
   > {
@@ -142,7 +146,7 @@ export class HGamalSuite<
     secret: S,
     medusaKey: P,
     // original ciphertext of the data and more importantly the key
-    bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
+    bundle: EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
     // the reencryption of the key by the medusa network
     reencryption: hgamal.MedusaReencryption<S, P>
   ): Promise<hgamal.DecryptionRes> {

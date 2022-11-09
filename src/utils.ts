@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { BigNumber } from "ethers";
 import { arrayify, hexlify, hexZeroPad, randomBytes } from "ethers/lib/utils";
-// @ts-ignore
 import { ChaCha } from "ffjavascript";
 import crypto from "crypto";
 
@@ -70,9 +69,9 @@ export function getRandomSeed(): number[] {
   return seed;
 }
 
-let threadRng: any = null;
+let threadRng: ChaCha;
 
-export function getThreadRng() {
+export function getThreadRng(): ChaCha {
   if (threadRng) return threadRng;
   threadRng = new ChaCha(getRandomSeed());
   return threadRng;
