@@ -9,6 +9,8 @@ npm install --save @medusa-network/medusa-sdk
 
 # Usage
 
+[See the demo application for more examples of usage](https://github.com/medusa-network/medusa-app)
+
 ```typescript
 import { Medusa, EVMG1Point, SuiteType } from '@medusa-network/medusa-sdk'
 
