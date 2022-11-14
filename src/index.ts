@@ -26,7 +26,7 @@ export interface Keypair<S extends SecretKey, P extends PublicKey<S>> {
 }
 
 // The available encryption suites supported by Medusa
-export const enum SuiteType {
+export enum SuiteType {
   BN254_KEYG1_HGAMAL = "bn254-keyG1-hgamal",
 }
 
