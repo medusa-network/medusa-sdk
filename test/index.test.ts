@@ -1,11 +1,11 @@
 import assert from "assert";
 import { Bn254Suite } from "../src/bn254";
-import { Medusa } from "../src/index";
+import { Medusa, SuiteType } from "../src/index";
 import { onlyZero } from "../src/utils";
 
 describe("index module", () => {
   it("new keypair", async () => {
-    await Medusa.init("bn254-keyG1-hgamal");
+    await Medusa.init(SuiteType.BN254_KEYG1_HGAMAL);
     const suite = new Bn254Suite();
     const kp = Medusa.newKeypair(suite);
     assert.ok(!kp.pubkey.equal(suite.point().zero()));

@@ -1,3 +1,4 @@
+// Type definitions for the ffjavascript library. Types are not complete and primarily match our use of the library
 declare module "ffjavascript" {
   async function buildBn128(): Promise<BN254>;
 

@@ -14,24 +14,42 @@ import {
 export { HGamalEVMCipher };
 export { EVMG1Point } from "./algebra";
 
+// The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
+// The secret key is a scalar value
 export type SecretKey = Scalar;
 
-export interface KeyPair<S extends SecretKey, P extends PublicKey<S>> {
+// A keypair consists of a public key and a secret scalar value
+export interface Keypair<S extends SecretKey, P extends PublicKey<S>> {
   secret: S;
   pubkey: P;
 }
 
-type SuiteType = "bn254-keyG1-hgamal";
+// The available encryption suites supported by Medusa
+export const enum SuiteType {
+  BN254_KEYG1_HGAMAL = "bn254-keyG1-hgamal",
+}
 
-// TODO: Generic over Encryption Suite
+/**
+ * Core class to handle encryption suites, curve initialization, generation of keys and encryption / decryption
+ */
 export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
+  // TODO: Medusa class should be generic over encryption suites as well
   readonly suite: Curve<S, P> & DleqSuite<S, P>;
 
+  /**
+   * Setup Medusa instance
+   * @param {Curve<S, P> & DleqSuite<S, P>} suite to use with encryption / decryption
+   */
   constructor(suite: Curve<S, P> & DleqSuite<S, P>) {
     this.suite = suite;
   }
 
+  /**
+   * Initialize the finite field curve for the specified encryption suite and return a corresponding Medusa instance
+   * @param {SuiteType} suiteType to use with encryption / decryption
+   * @returns {Promise<Medusa<S, P>>} Medusa instance
+   */
   static async init(
     suiteType: SuiteType
   ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
@@ -43,49 +61,69 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     }
   }
 
+  /**
+   * Generate a random keypair
+   * @param {C} curve to use for key generation
+   * @returns {Promise<Medusa<S, P>>} Medusa instance
+   */
   static newKeypair<
     S extends Scalar,
     P extends Point<S>,
     C extends Curve<S, P>
-  >(c: C): KeyPair<S, P> {
-    const priv = c.scalar().random();
-    const pubkey = c.point().one().mul(priv);
-    const kp: KeyPair<S, P> = {
+  >(curve: C): Keypair<S, P> {
+    const priv = curve.scalar().random();
+    const pubkey = curve.point().one().mul(priv);
+    const kp: Keypair<S, P> = {
       secret: priv,
       pubkey: pubkey,
     };
     return kp;
   }
 
-  calculateKeyPair(signature: string): KeyPair<S, P> | undefined {
+  /**
+   * Derive a medusa keypair from a signature
+   * @param {string} signature to use for key derivation
+   * @returns {Keypair<S, P>} A Medusa Keypair
+   */
+  deriveKeypair(signature: string): Keypair<S, P> | undefined {
     // Hashing the signature
     const hash = utils.keccak256(signature);
-    let BN = BigNumber.from(hash);
+    let random = BigNumber.from(hash);
     let n = 0;
     while (true) {
       try {
-        // Take the scalar from the number
-        BN = BN.add(n);
-        const priv = this.suite.scalar().fromEvm(BN);
-        // Unwrap to make it owkr with the mul function above
-        const unwrapped = priv._unsafeUnwrap();
-        // Continue the calculation of the key
-        const pubkey = this.suite.point().one().mul(unwrapped);
-        const kp: KeyPair<S, P> = {
-          secret: unwrapped,
-          pubkey: pubkey,
+        // Take the scalar from the random number
+        random = random.add(n);
+        const secret = this.suite.scalar().fromEvm(random)._unsafeUnwrap();
+        // Calculate the key: P = G * s
+        const pubkey = this.suite.point().one().mul(secret);
+        return {
+          secret,
+          pubkey,
         };
-        return kp;
       } catch (e) {
         n++;
       }
     }
   }
 
+  /**
+   * Convert a public key from EVM into Medusa format
+   * @param {EVMG1Point} pubkey to decode
+   * @returns {P} A Medusa Public Key
+   */
   decodePublicKey(pubkey: EVMG1Point): P {
     return this.suite.point().fromEvm(pubkey)._unsafeUnwrap();
   }
 
+  /**
+   * Encrypt a message for a user; include a label to prevent replay attacks via onchain DLEQ verification
+   * @param {Uint8Array} data to encrypt
+   * @param {P} medusaPublicKey of the encryption oracle to encrypt towards
+   * @param {string} contractAddress of the application developer's contract to be included in the label
+   * @param {string} userAddress of the user to be included in the label
+   * @returns {Promise<{encryptedData: string, encryptedKey: HGamalEVMCipher}>} The encrypted data and the EVM encoded encrypted key
+   */
   async encrypt(
     data: Uint8Array,
     medusaPublicKey: P,
@@ -104,6 +142,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     };
   }
 
+  /**
+   * Decrypt a message that has been reencrypted for a user
+   * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
+   * @param {string} encryptedContents to decrypt
+   * @param {S} userPrivateKey of the user to decrypt ciphertext
+   * @param {P} medusaPublicKey of the medusa encryption oracle
+   * @returns {Promise<string>} The decrypted data
+   */
   async decrypt(
     ciphertext: HGamalEVMCipher,
     encryptedContents: string,
