@@ -7,10 +7,11 @@ import { EncodingRes, EVMEncoding } from "./encoding";
 import { bnToArray } from "./utils";
 import { EVMTranscript } from "./transcript";
 import * as dleq from "./dleq";
+import { BigNumber } from "ethers";
 
 export interface EVMCipher {
   random: EVMG1Point;
-  cipher: Uint8Array;
+  cipher: BigNumber;
   // random element on the second base r*G2
   // used by the DLEQ proof.
   random2: EVMG1Point;
@@ -46,14 +47,14 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   toEvm(): EVMCipher {
     return {
       random: this.random.toEvm(),
-      cipher: this.cipher,
+      cipher: BigNumber.from(this.cipher),
       random2: this.random2.toEvm(),
       dleq: this.dleq.toEvm(),
     };
   }
 
   fromEvm(e: EVMCipher): EncodingRes<this> {
-    this.cipher = e.cipher;
+    this.cipher = bnToArray(e.cipher, false, 32);
     return this.random
       .fromEvm(e.random)
       .andThen((r) => {
