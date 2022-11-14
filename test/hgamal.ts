@@ -1,6 +1,6 @@
 import * as hgamal from "../src/hgamal";
-import { newKeypair } from "../src";
-import { init, suite, G1 } from "../src/bn254";
+import { Medusa } from "../src";
+import { init, G1, Bn254Suite } from "../src/bn254";
 import * as dleq from "../src/dleq";
 import assert from "assert";
 import { hexlify, arrayify } from "ethers/lib/utils";
@@ -8,34 +8,36 @@ import { arrayToBn, bnToArray } from "../src/utils";
 import { ShaTranscript } from "../src/transcript";
 import { reencrypt } from "./utils";
 
-export function pointFromXY(x: string, y: string): G1 {
-  // We reverse manually first here because EVM etherjs will read in bigendian
-  // so the fromEVM calls already reverse the array. Therefore we need to give it
-  // in a reversed form first, (the hex from Rust comes in littleendian), so we need
-  // to give it in big endian form.
-  const xa = arrayToBn(arrayify(x), true);
-  const ya = arrayToBn(arrayify(y), true);
-  const p = suite.point().fromEvm({ x: xa, y: ya });
-  assert(p.isOk());
-  return p._unsafeUnwrap();
-}
-
-export function transcript(): ShaTranscript {
-  return new ShaTranscript();
-}
-
-function compareEqual(p1: G1, p2: G1): boolean {
-  return p1.equal(p2);
-}
-
 describe("hgamal", () => {
+  let suite: Bn254Suite;
+
   before(async () => {
-    await init();
+    suite = await init();
   });
 
+  function transcript(): ShaTranscript {
+    return new ShaTranscript();
+  }
+
+  function compareEqual(p1: G1, p2: G1): boolean {
+    return p1.equal(p2);
+  }
+
+  function pointFromXY(x: string, y: string): G1 {
+    // We reverse manually first here because EVM etherjs will read in bigendian
+    // so the fromEVM calls already reverse the array. Therefore we need to give it
+    // in a reversed form first, (the hex from Rust comes in littleendian), so we need
+    // to give it in big endian form.
+    const xa = arrayToBn(arrayify(x), true);
+    const ya = arrayToBn(arrayify(y), true);
+    const p = suite.point().fromEvm({ x: xa, y: ya });
+    assert(p.isOk());
+    return p._unsafeUnwrap();
+  }
+
   it("decryption of medusa reencryption", async () => {
-    const proxy = newKeypair(suite);
-    const bob = newKeypair(suite);
+    const proxy = Medusa.newKeypair(suite);
+    const bob = Medusa.newKeypair(suite);
     const msgStr = "Hello Bob";
     const msgBuff = new TextEncoder().encode(msgStr.padEnd(32, "\0"));
     const c = await hgamal.encrypt(suite, proxy.pubkey, msgBuff, transcript());

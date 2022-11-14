@@ -1,8 +1,10 @@
 import assert from "assert";
 import { artifacts, ethers } from "hardhat";
-import { init, suite } from "../src/bn254";
+import { Bn254Suite, init } from "../src/bn254";
 import { ShaTranscript } from "../src/transcript";
 import { prove, verify } from "../src/dleq";
+
+/* eslint-disable-next-line camelcase */
 import { Playground, Playground__factory } from "../typechain";
 import { ABIString, ABIAddress, ABIBytes32 } from "../src/encoding";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -11,8 +13,10 @@ import { Label } from "../src/encrypt";
 describe("dleq proof", () => {
   let owner: SignerWithAddress;
   let testContract: Playground;
+  let suite: Bn254Suite;
+
   before(async () => {
-    await init();
+    suite = await init();
   });
 
   beforeEach(async () => {
@@ -20,6 +24,7 @@ describe("dleq proof", () => {
     owner = a1;
     testContract = await new Playground__factory(owner).deploy();
   });
+
   it("typescript verification", () => {
     const secret = suite.scalar().random();
     const rg2 = suite.base2().mul(secret);

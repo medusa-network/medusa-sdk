@@ -2,15 +2,18 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
+/* eslint-disable-next-line camelcase */
 import { Playground__factory } from "../typechain";
 import { Proof as DleqProof } from "../src/dleq";
-import { init, suite as curve } from "../src/bn254";
+import { Bn254Suite, init } from "../src/bn254";
 import { hexlify, randomBytes } from "ethers/lib/utils";
 import assert from "assert";
 
 describe("Test Encoding ", () => {
+  let curve: Bn254Suite;
+
   before(async () => {
-    await init();
+    curve = await init();
   });
 
   it("local encoding & decoding curve", () => {

@@ -2,18 +2,20 @@ import assert from "assert";
 import { BigNumber } from "ethers";
 import { WasmCurve, WasmField1 } from "ffjavascript";
 import { ethers } from "hardhat";
+/* eslint-disable-next-line camelcase */
 import { Playground__factory } from "../typechain";
-import { suite, curve, init } from "../src/bn254";
+import { init, Bn254Suite } from "../src/bn254";
 import { EVMG1Point } from "../src/algebra";
 
 describe("use ident", async () => {
   let group: WasmCurve;
   let field: WasmField1;
+  let suite: Bn254Suite;
 
   before(async () => {
-    await init();
-    group = curve.G1;
-    field = curve.Fr;
+    suite = await init();
+    group = globalThis.ffCurve.G1;
+    field = globalThis.ffCurve.Fr;
   });
 
   // it("show bases", () => {

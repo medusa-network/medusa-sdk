@@ -1,6 +1,8 @@
-import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
-import { buildBn128, WasmCurve, WasmField1, BN254 } from "ffjavascript";
+import { buildBn128, WasmCurve, WasmField1 } from "ffjavascript";
+import { ok, err } from "neverthrow";
+import { BigNumber } from "ethers";
 
+import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
 import {
   EncodingRes,
   EncodingError,
@@ -8,17 +10,19 @@ import {
   ABIEncoder,
   ABIEncoded,
 } from "./encoding";
-import { ok, err } from "neverthrow";
-import { BigNumber } from "ethers";
 import { ToBytes } from "../src/transcript";
 import { DleqSuite } from "./dleq";
 
+let IG1: WasmCurve;
+let IFr: WasmField1;
+
 /// Initiatlization of the suite and some constants
-export async function init(): Promise<void> {
-  curve = await buildBn128();
-  IG1 = curve.G1;
-  IFr = curve.Fr;
-  suite = new Bn254Suite();
+export async function init(): Promise<Bn254Suite> {
+  // Only build curve once
+  globalThis.ffCurve ||= await buildBn128();
+  IG1 = globalThis.ffCurve.G1;
+  IFr = globalThis.ffCurve.Fr;
+  return new Bn254Suite();
 }
 
 export class Fr
@@ -226,9 +230,3 @@ export class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
     return base2;
   }
 }
-
-let curve: BN254;
-let IG1: WasmCurve;
-let IFr: WasmField1;
-let suite: Bn254Suite;
-export { suite, curve };
