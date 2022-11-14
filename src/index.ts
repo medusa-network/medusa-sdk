@@ -1,8 +1,8 @@
 import { Base64 } from "js-base64";
 import { BigNumber, utils } from "ethers";
 
-import { init as initBn254, Bn254Suite } from "./bn254";
-import { Point, Scalar, Curve } from "./algebra";
+import { init as initBn254 } from "./bn254";
+import { Point, Scalar, Curve, EVMG1Point } from "./algebra";
 import { EncryptionBundle, HGamalSuite, Label } from "./encrypt";
 import { DleqSuite } from "./dleq";
 
@@ -24,23 +24,23 @@ export interface KeyPair<S extends SecretKey, P extends PublicKey<S>> {
 
 type SuiteType = "bn254-keyG1-hgamal";
 
-export async function initMedusa(
-  suiteType: SuiteType
-): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
-  switch (suiteType) {
-    case "bn254-keyG1-hgamal":
-      initBn254();
-      return new Medusa(new Bn254Suite());
-    default:
-      throw new Error(`unknown suite type: ${suiteType}`);
-  }
-}
-
+// TODO: Generic over Encryption Suite
 export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
-  suite: Curve<S, P> & DleqSuite<S, P>;
+  readonly suite: Curve<S, P> & DleqSuite<S, P>;
 
   constructor(suite: Curve<S, P> & DleqSuite<S, P>) {
     this.suite = suite;
+  }
+
+  static async init(
+    suiteType: SuiteType
+  ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
+    switch (suiteType) {
+      case "bn254-keyG1-hgamal":
+        return new Medusa(await initBn254());
+      default:
+        throw new Error(`unknown suite type: ${suiteType}`);
+    }
   }
 
   static newKeypair<
@@ -58,7 +58,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   calculateKeyPair(signature: string): KeyPair<S, P> | undefined {
-    // Hasing the signature
+    // Hashing the signature
     const hash = utils.keccak256(signature);
     let BN = BigNumber.from(hash);
     let n = 0;
@@ -80,6 +80,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
         n++;
       }
     }
+  }
+
+  decodePublicKey(pubkey: EVMG1Point): P {
+    return this.suite.point().fromEvm(pubkey)._unsafeUnwrap();
   }
 
   async encrypt(
