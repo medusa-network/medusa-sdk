@@ -1,4 +1,4 @@
-import { KeyPair, newKeypair } from "./index";
+import { KeyPair, Medusa } from "./index";
 import { Scalar, Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
 import {
@@ -137,7 +137,7 @@ export class HGamalSuite<
   /// way of asking to reencrypt) and the secret part must be kept and given to
   /// "oneTimeDecrypt" when the reencryption arrived.
   public keyForDecryption(): KeyPair<S, P> {
-    return newKeypair(this.suite);
+    return Medusa.newKeypair(this.suite);
   }
 
   /// Decrypts a reencryption by medusa of the given bundle, using the
