@@ -10,8 +10,12 @@ import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
 } from "./hgamal";
-/* eslint-disable-next-line camelcase */
-import { ThresholdNetwork__factory } from "../typechain";
+import {
+  /* eslint-disable-next-line camelcase */
+  EncryptionOracle__factory,
+  /* eslint-disable-next-line camelcase */
+  ThresholdNetwork__factory,
+} from "../typechain";
 
 export { HGamalEVMCipher };
 export { EVMG1Point } from "./algebra";
@@ -29,7 +33,7 @@ export interface Keypair<S extends SecretKey, P extends PublicKey<S>> {
 
 // The available encryption suites supported by Medusa
 export enum SuiteType {
-  BN254_KEYG1_HGAMAL = "bn254-keyG1-hgamal",
+  BN254_KEYG1_HGAMAL,
 }
 
 /**
@@ -46,6 +50,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   readonly signer: ethers.Signer;
   // The address of the medusa oracle contract
   readonly medusaAddress: string;
+  // The public key of the medusa oracle contract
+  private publicKey: P | undefined;
 
   /**
    * Setup Medusa instance
@@ -62,23 +68,38 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
-   * Initialize the finite field curve for the specified encryption suite and return a corresponding Medusa instance
-   * @param {SuiteType} suiteType to use with encryption / decryption
+   * Initialize the finite field curve for the encryption suite and return a corresponding Medusa instance
+   * @param {string} medusaAddress The address of the medusa oracle being used
+   * @param {ethers.Signer} signer The signer with attached provider used to interact with Medusa
    * @returns {Promise<Medusa<S, P>>} Medusa instance
    */
   static async init(
-    suiteType: SuiteType,
-    signer: ethers.Signer,
-    medusaAddress: string
+    medusaAddress: string,
+    signer: ethers.Signer
   ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
-    switch (suiteType) {
-      case "bn254-keyG1-hgamal":
+    if (!signer.provider) {
+      throw new Error("Medusa: Signer must have an attached provider");
+    }
+
+    const medusaContract = EncryptionOracle__factory.connect(
+      medusaAddress,
+      signer
+    );
+
+    const suite = await medusaContract.suite();
+
+    switch (suite as SuiteType) {
+      case SuiteType.BN254_KEYG1_HGAMAL:
         return new Medusa(await initBn254(), signer, medusaAddress);
       default:
-        throw new Error(`unknown suite type: ${suiteType}`);
+        throw new Error(`unknown suite type: ${suite}`);
     }
   }
 
+  /**
+   * Set a user's medusa keypair
+   * @param {Keypair<SecretKey, PublicKey<SecretKey>>} keypair saved as a static variable on the Medusa class
+   */
   static setKeypair(keypair: Keypair<SecretKey, PublicKey<SecretKey>>): void {
     Medusa.keypair = keypair;
   }
@@ -105,7 +126,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Request a user's signature, derive a keypair from it and set it as a static variable on the Medusa class
    */
-  async signAndDeriveKeypair(): Promise<void> {
+  async sign(): Promise<void> {
     if (Medusa.keypair) {
       return;
     }
@@ -145,13 +166,16 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * @returns {Promise<P>} The Medusa Public Key
    */
   async getPublicKey(): Promise<P> {
+    if (this.publicKey) {
+      return this.publicKey;
+    }
     const medusaContract = ThresholdNetwork__factory.connect(
       this.medusaAddress,
       this.signer
     );
     const key = await medusaContract.distributedKey();
-    const medusaPublicKey = this.decodePublicKey(key);
-    return medusaPublicKey;
+    this.publicKey = this.decodePublicKey(key);
+    return this.publicKey;
   }
 
   /**
@@ -216,7 +240,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       encryptedKey: cipher,
     };
 
-    await this.signAndDeriveKeypair();
+    await this.sign();
     // Decrypt
     const decryptionRes = await hgamalSuite.decryptFromMedusa(
       Medusa.keypair!.secret,

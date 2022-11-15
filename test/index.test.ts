@@ -10,12 +10,9 @@ describe("Medusa Class", () => {
 
   before(async () => {
     const [signer] = await ethers.getSigners();
-    const medusaAddress = await ethers.Wallet.createRandom().getAddress();
-    medusa = await Medusa.init(
-      SuiteType.BN254_KEYG1_HGAMAL,
-      signer,
-      medusaAddress
-    );
+    const medusaAddress = (await new Playground__factory(signer).deploy())
+      .address;
+    medusa = await Medusa.init(medusaAddress, signer);
   });
 
   it("creates new keypair and sets it", async () => {

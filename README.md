@@ -15,19 +15,18 @@ npm install --save @medusa-network/medusa-sdk
 import { Medusa, EVMG1Point, SuiteType } from "@medusa-network/medusa-sdk";
 
 // Initialize medusa with:
-// - An encryption suite (bn254 curve + keypair in G1 + HGamal encryption algorithm)
-// - A signer for a user
 // - The address of the Medusa Encryption Oracle contract
-const signer = new ethers.Wallet(userPrivateKey)
+// - A signer for a user
+const signer = new ethers.Wallet(userPrivateKey).connect(ethers.getDefaultProvider());
 const medusaOracleAddress = "0xabc...123"
-const medusa = await Medusa.init(SuiteType.BN254_KEYG1_HGAMAL, signer, medusaOracleAddress);
+const medusa = await Medusa.init(medusaOracleAddress, signer);
 // Note: Medusa can be initialized one or more times for a given encryption suite
 
 // Get Public Key of Medusa Oracle contract
 const medusaPublicKey = await medusa.getPublicKey()
 
 // Prompt a user to sign a message with their wallet and derive their medusa keypair from their (deterministic) signature
-await medusa.signAndDeriveKeypair();
+await medusa.sign();
 
 // Encrypt data towards Medusa
 const { encryptedData, encryptedKey } = await medusa.encrypt(
@@ -51,9 +50,6 @@ const decryptedBytes = await medusa.decrypt(
   encryptedContents,
 );
 const plaintext = new TextDecoder().decode(decryptedBytes)
-
-// Generate random keypair; useful for testing purposes
-const keypair = Medusa.newKeypair(medusa.suite);
 ```
 
 # Development
