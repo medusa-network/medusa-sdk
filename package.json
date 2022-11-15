@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc10",
+  "version": "0.0.1-rc11",
   "description": "",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

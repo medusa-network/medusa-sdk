@@ -19,15 +19,6 @@ export interface Scalar
     EVMEncoding<BigNumber>,
     ABIEncoder {
   inverse(): this;
-  /// takes an array of bytes, modulo it to the
-  /// the scalar field and return the scalar.
-  /// Different than deserialize which panics if the
-  /// scalar is not in the right range. THis method
-  /// is to be used to create arrays from any streams
-  /// of bytes (think transcript hashing).
-
-  // TODO: Should we remove this?
-  // fromBytes(array: Uint8Array): this;
 }
 
 export interface EVMG1Point {

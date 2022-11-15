@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { Scalar, Point } from "../src/algebra";
-import { KeyPair, Medusa } from "../src";
+import { Keypair, Medusa } from "../src";
 import { init, Bn254Suite } from "../src/bn254";
 import assert from "assert";
 import { HGamalSuite, Label } from "../src/encrypt";
@@ -13,9 +13,9 @@ describe("medusa encryption", () => {
     "None of us is great enough for such a task. But in all circumstances of life, in obscurity or temporary fame, cast in the irons of tyranny or for a time free to express himself, the writer can win the heart of a living community that will justify him, on the one condition that he will accept to the limit of his abilities the two tasks that constitute the greatness of his craft: the service of truth and the service of liberty. Because his task is to unite the greatest possible number of people, his art must not compromise with lies and servitude which, wherever they rule, breed solitude. Whatever our personal weaknesses may be, the nobility of our craft will always be rooted in two commitments, difficult to maintain: the refusal to lie about what one knows and the resistance to oppression.";
   const msgBuff = new TextEncoder().encode(msgStr);
   let curve: Bn254Suite;
-  let medusa: KeyPair<Scalar, Point<Scalar>>;
+  let medusa: Keypair<Scalar, Point<Scalar>>;
   let suite: HGamalSuite<Scalar, Point<Scalar>, Bn254Suite>;
-  let bob: KeyPair<Scalar, Point<Scalar>>;
+  let bob: Keypair<Scalar, Point<Scalar>>;
 
   before(async () => {
     curve = await init();

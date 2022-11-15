@@ -1,5 +1,5 @@
 import { Base64 } from "js-base64";
-import { BigNumber, utils } from "ethers";
+import { BigNumber, ethers, utils } from "ethers";
 
 import { init as initBn254 } from "./bn254";
 import { Point, Scalar, Curve, EVMG1Point } from "./algebra";
@@ -10,6 +10,8 @@ import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
 } from "./hgamal";
+/* eslint-disable-next-line camelcase */
+import { ThresholdNetwork__factory } from "../typechain";
 
 export { HGamalEVMCipher };
 export { EVMG1Point } from "./algebra";
@@ -35,14 +37,28 @@ export enum SuiteType {
  */
 export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   // TODO: Medusa class should be generic over encryption suites as well
+
+  // The user's medusa keypair
+  static keypair: Keypair<SecretKey, PublicKey<SecretKey>> | undefined;
+
   readonly suite: Curve<S, P> & DleqSuite<S, P>;
+  // A signer for the user in order to derive the user's medusa keypair and to get their address
+  readonly signer: ethers.Signer;
+  // The address of the medusa oracle contract
+  readonly medusaAddress: string;
 
   /**
    * Setup Medusa instance
    * @param {Curve<S, P> & DleqSuite<S, P>} suite to use with encryption / decryption
    */
-  constructor(suite: Curve<S, P> & DleqSuite<S, P>) {
+  constructor(
+    suite: Curve<S, P> & DleqSuite<S, P>,
+    signer: ethers.Signer,
+    medusaAddress: string
+  ) {
     this.suite = suite;
+    this.signer = signer;
+    this.medusaAddress = medusaAddress;
   }
 
   /**
@@ -51,14 +67,20 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * @returns {Promise<Medusa<S, P>>} Medusa instance
    */
   static async init(
-    suiteType: SuiteType
+    suiteType: SuiteType,
+    signer: ethers.Signer,
+    medusaAddress: string
   ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
     switch (suiteType) {
       case "bn254-keyG1-hgamal":
-        return new Medusa(await initBn254());
+        return new Medusa(await initBn254(), signer, medusaAddress);
       default:
         throw new Error(`unknown suite type: ${suiteType}`);
     }
+  }
+
+  static setKeypair(keypair: Keypair<SecretKey, PublicKey<SecretKey>>): void {
+    Medusa.keypair = keypair;
   }
 
   /**
@@ -81,11 +103,22 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
+   * Request a user's signature, derive a keypair from it and set it as a static variable on the Medusa class
+   */
+  async signAndDeriveKeypair(): Promise<void> {
+    if (Medusa.keypair) {
+      return;
+    }
+    const signature = await this.signer.signMessage("Sign in to Medusa");
+    Medusa.setKeypair(this.deriveKeypair(signature));
+  }
+
+  /**
    * Derive a medusa keypair from a signature
    * @param {string} signature to use for key derivation
    * @returns {Keypair<S, P>} A Medusa Keypair
    */
-  deriveKeypair(signature: string): Keypair<S, P> | undefined {
+  deriveKeypair(signature: string): Keypair<S, P> {
     // Hashing the signature
     const hash = utils.keccak256(signature);
     let random = BigNumber.from(hash);
@@ -108,6 +141,20 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
+   * Get the public key of the Medusa Oracle
+   * @returns {Promise<P>} The Medusa Public Key
+   */
+  async getPublicKey(): Promise<P> {
+    const medusaContract = ThresholdNetwork__factory.connect(
+      this.medusaAddress,
+      this.signer
+    );
+    const key = await medusaContract.distributedKey();
+    const medusaPublicKey = this.decodePublicKey(key);
+    return medusaPublicKey;
+  }
+
+  /**
    * Convert a public key from EVM into Medusa format
    * @param {EVMG1Point} pubkey to decode
    * @returns {P} A Medusa Public Key
@@ -119,19 +166,20 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Encrypt a message for a user; include a label to prevent replay attacks via onchain DLEQ verification
    * @param {Uint8Array} data to encrypt
-   * @param {P} medusaPublicKey of the encryption oracle to encrypt towards
    * @param {string} contractAddress of the application developer's contract to be included in the label
-   * @param {string} userAddress of the user to be included in the label
    * @returns {Promise<{encryptedData: string, encryptedKey: HGamalEVMCipher}>} The encrypted data and the EVM encoded encrypted key
    */
   async encrypt(
     data: Uint8Array,
-    medusaPublicKey: P,
-    contractAddress: `0x${string}`,
-    userAddress: `0x${string}`
+    contractAddress: string
   ): Promise<{ encryptedData: string; encryptedKey: HGamalEVMCipher }> {
+    const medusaPublicKey = await this.getPublicKey();
     const hgamalSuite = new HGamalSuite(this.suite);
-    const label = Label.from(medusaPublicKey, contractAddress, userAddress);
+    const label = Label.from(
+      medusaPublicKey,
+      contractAddress,
+      await this.signer.getAddress()
+    );
     const bundle = (
       await hgamalSuite.encryptToMedusa(data, medusaPublicKey, label)
     )._unsafeUnwrap();
@@ -146,16 +194,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * Decrypt a message that has been reencrypted for a user
    * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
    * @param {string} encryptedContents to decrypt
-   * @param {S} userPrivateKey of the user to decrypt ciphertext
-   * @param {P} medusaPublicKey of the medusa encryption oracle
    * @returns {Promise<string>} The decrypted data
    */
   async decrypt(
     ciphertext: HGamalEVMCipher,
-    encryptedContents: string,
-    userPrivateKey: S,
-    medusaPublicKey: P
-  ): Promise<string> {
+    encryptedContents: string
+  ): Promise<Uint8Array> {
     // Base64 decode into Uint8Array
     const encryptedData = Base64.toUint8Array(encryptedContents);
 
@@ -172,14 +216,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       encryptedKey: cipher,
     };
 
+    await this.signAndDeriveKeypair();
     // Decrypt
     const decryptionRes = await hgamalSuite.decryptFromMedusa(
-      userPrivateKey,
-      medusaPublicKey,
+      Medusa.keypair!.secret,
+      await this.getPublicKey(),
       bundle,
       cipher
     );
-    // Decode to string
-    return new TextDecoder().decode(decryptionRes._unsafeUnwrap());
+    return decryptionRes._unsafeUnwrap();
   }
 }
