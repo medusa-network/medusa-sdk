@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build:contracts": "cd contracts && forge clean && forge install && forge build",
-    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/**/*.json",
+    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/*[!.t].sol/*.json",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
