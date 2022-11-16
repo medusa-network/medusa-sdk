@@ -3,7 +3,6 @@
   "exclude": [
     "./scripts",
     "./test",
-    "./typechain",
     "./hardhat.config.ts"
   ]
 }
