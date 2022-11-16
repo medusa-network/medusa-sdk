@@ -1,9 +1,9 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc13",
-  "description": "",
+  "version": "0.0.1-rc14",
+  "description": "The Typescript library for developers to use with Medusa-enabled applications",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   },
   "main": "lib/src/index.js",
   "types": "lib/src/index.d.ts",
