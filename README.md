@@ -23,10 +23,10 @@ const medusa = await Medusa.init(medusaOracleAddress, signer);
 // Note: Medusa can be initialized one or more times for a given encryption suite
 
 // Get Public Key of Medusa Oracle contract
-const medusaPublicKey = await medusa.getPublicKey()
+const medusaPublicKey = await medusa.fetchPublicKey()
 
 // Prompt a user to sign a message with their wallet and derive their medusa keypair from their (deterministic) signature
-await medusa.sign();
+const keypair = await medusa.sign();
 
 // Encrypt data towards Medusa
 const { encryptedData, encryptedKey } = await medusa.encrypt(

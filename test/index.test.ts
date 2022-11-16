@@ -1,6 +1,6 @@
 import assert from "assert";
 import { ethers } from "hardhat";
-import { Medusa, PublicKey, SecretKey, SuiteType } from "../src/index";
+import { Medusa, PublicKey, SecretKey } from "../src/index";
 import { onlyZero } from "../src/utils";
 /* eslint-disable-next-line camelcase  */
 import { Playground__factory } from "../typechain";
@@ -10,6 +10,7 @@ describe("Medusa Class", () => {
 
   before(async () => {
     const [signer] = await ethers.getSigners();
+
     const medusaAddress = (await new Playground__factory(signer).deploy())
       .address;
     medusa = await Medusa.init(medusaAddress, signer);
@@ -20,9 +21,9 @@ describe("Medusa Class", () => {
     assert.ok(!kp.pubkey.equal(medusa.suite.point().zero()));
     assert.ok(!kp.secret.equal(medusa.suite.scalar().zero()));
 
-    Medusa.setKeypair(kp);
-    assert.ok(kp.pubkey.equal(Medusa.keypair!.pubkey));
-    assert.ok(kp.secret.equal(Medusa.keypair!.secret));
+    medusa.setKeypair(kp);
+    assert.ok(kp.pubkey.equal(medusa.keypair!.pubkey));
+    assert.ok(kp.secret.equal(medusa.keypair!.secret));
   });
 
   it("derives the same keypair given a signature", async () => {
@@ -38,7 +39,7 @@ describe("Medusa Class", () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     const m = new Medusa(medusa.suite, medusa.signer, testContract.address);
-    const pubkey = await m.getPublicKey();
+    const pubkey = await m.fetchPublicKey();
 
     const expectedPubkey = medusa.decodePublicKey(
       await testContract.distributedKey()

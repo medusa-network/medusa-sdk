@@ -43,7 +43,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   // TODO: Medusa class should be generic over encryption suites as well
 
   // The user's medusa keypair
-  static keypair: Keypair<SecretKey, PublicKey<SecretKey>> | undefined;
+  keypair: Keypair<S, P> | undefined;
 
   readonly suite: Curve<S, P> & DleqSuite<S, P>;
   // A signer for the user in order to derive the user's medusa keypair and to get their address
@@ -97,14 +97,6 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
-   * Set a user's medusa keypair
-   * @param {Keypair<SecretKey, PublicKey<SecretKey>>} keypair saved as a static variable on the Medusa class
-   */
-  static setKeypair(keypair: Keypair<SecretKey, PublicKey<SecretKey>>): void {
-    Medusa.keypair = keypair;
-  }
-
-  /**
    * Generate a random keypair
    * @param {C} curve to use for key generation
    * @returns {Promise<Medusa<S, P>>} Medusa instance
@@ -124,14 +116,24 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
+   * Set a user's medusa keypair
+   * @param {Keypair<S, P>} keypair saved as a static variable on the Medusa class
+   */
+  setKeypair(keypair: Keypair<S, P>): void {
+    this.keypair = keypair;
+  }
+
+  /**
    * Request a user's signature, derive a keypair from it and set it as a static variable on the Medusa class
    */
-  async sign(): Promise<void> {
-    if (Medusa.keypair) {
-      return;
+  async sign(): Promise<Keypair<S, P>> {
+    if (this.keypair) {
+      return this.keypair;
     }
     const signature = await this.signer.signMessage("Sign in to Medusa");
-    Medusa.setKeypair(this.deriveKeypair(signature));
+    const kp = this.deriveKeypair(signature);
+    this.setKeypair(kp);
+    return kp;
   }
 
   /**
@@ -162,10 +164,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
-   * Get the public key of the Medusa Oracle
+   * Fetch the public key of the Medusa Oracle, cache it, and return it
    * @returns {Promise<P>} The Medusa Public Key
    */
-  async getPublicKey(): Promise<P> {
+  async fetchPublicKey(): Promise<P> {
     if (this.publicKey) {
       return this.publicKey;
     }
@@ -197,7 +199,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     data: Uint8Array,
     contractAddress: string
   ): Promise<{ encryptedData: string; encryptedKey: HGamalEVMCipher }> {
-    const medusaPublicKey = await this.getPublicKey();
+    const medusaPublicKey = await this.fetchPublicKey();
     const hgamalSuite = new HGamalSuite(this.suite);
     const label = Label.from(
       medusaPublicKey,
@@ -240,11 +242,11 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       encryptedKey: cipher,
     };
 
-    await this.sign();
+    const kp = await this.sign();
     // Decrypt
     const decryptionRes = await hgamalSuite.decryptFromMedusa(
-      Medusa.keypair!.secret,
-      await this.getPublicKey(),
+      kp.secret,
+      await this.fetchPublicKey(),
       bundle,
       cipher
     );
