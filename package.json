@@ -1,6 +1,6 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1",
+  "version": "0.0.1-rc15",
   "description": "The Typescript library for developers to use with Medusa-enabled applications",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
@@ -28,7 +28,6 @@
   "dependencies": {
     "ffjavascript": "^0.2.56",
     "hardhat": "^2.9.5",
-    "js-base64": "^3.7.2",
     "js-crypto-hkdf": "^1.0.4",
     "minimatch": "3.0.5",
     "neverthrow": "^4.3.1",

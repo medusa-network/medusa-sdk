@@ -1,4 +1,3 @@
-import { Base64 } from "js-base64";
 import { BigNumber, ethers, utils } from "ethers";
 
 import { init as initBn254 } from "./bn254";
@@ -126,7 +125,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Request a user's signature, derive a keypair from it and set it as a static variable on the Medusa class
    */
-  async sign(): Promise<Keypair<S, P>> {
+  async signForKeypair(): Promise<Keypair<S, P>> {
     if (this.keypair) {
       return this.keypair;
     }
@@ -198,7 +197,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   async encrypt(
     data: Uint8Array,
     contractAddress: string
-  ): Promise<{ encryptedData: string; encryptedKey: HGamalEVMCipher }> {
+  ): Promise<{ encryptedData: Uint8Array; encryptedKey: HGamalEVMCipher }> {
     const medusaPublicKey = await this.fetchPublicKey();
     const hgamalSuite = new HGamalSuite(this.suite);
     const label = Label.from(
@@ -212,23 +211,20 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
 
     return {
       encryptedKey: bundle.encryptedKey.toEvm(),
-      encryptedData: Base64.fromUint8Array(bundle.encryptedData),
+      encryptedData: bundle.encryptedData,
     };
   }
 
   /**
    * Decrypt a message that has been reencrypted for a user
    * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
-   * @param {string} encryptedContents to decrypt
-   * @returns {Promise<string>} The decrypted data
+   * @param {Uint8Array} encryptedContents to decrypt
+   * @returns {Promise<Uint8Array>} The decrypted data
    */
   async decrypt(
     ciphertext: HGamalEVMCipher,
-    encryptedContents: string
+    encryptedData: Uint8Array
   ): Promise<Uint8Array> {
-    // Base64 decode into Uint8Array
-    const encryptedData = Base64.toUint8Array(encryptedContents);
-
     const hgamalSuite = new HGamalSuite(this.suite);
 
     // Convert the ciphertext to a format that the Medusa SDK can use
@@ -242,7 +238,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       encryptedKey: cipher,
     };
 
-    const kp = await this.sign();
+    const kp = await this.signForKeypair();
     // Decrypt
     const decryptionRes = await hgamalSuite.decryptFromMedusa(
       kp.secret,
