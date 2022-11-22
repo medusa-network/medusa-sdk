@@ -1,46 +1,69 @@
-# Advanced Sample Hardhat Project
+# About
+The Typescript library for developers to use with Medusa-enabled applications
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+# Installation
 
-The project comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts. It also comes with a variety of other tools, preconfigured to work with the project code.
-
-Try running some of the following tasks:
-
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.ts
-TS_NODE_FILES=true npx ts-node scripts/deploy.ts
-npx eslint '**/*.{js,ts}'
-npx eslint '**/*.{js,ts}' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
+```bash
+npm install --save @medusa-network/medusa-sdk
 ```
 
-# Etherscan verification
+# Usage
 
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
+[See the demo application for more examples of usage](https://github.com/medusa-network/medusa-app)
 
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
+```typescript
+import { Medusa, EVMG1Point, SuiteType } from "@medusa-network/medusa-sdk";
 
-```shell
-hardhat run --network ropsten scripts/deploy.ts
+// Initialize medusa with:
+// - The address of the Medusa Encryption Oracle contract
+// - A signer for a user
+const signer = new ethers.Wallet(userPrivateKey).connect(ethers.getDefaultProvider());
+const medusaOracleAddress = "0xabc...123"
+const medusa = await Medusa.init(medusaOracleAddress, signer);
+// Note: Medusa can be initialized one or more times for a given encryption suite
+
+// Get Public Key of Medusa Oracle contract
+const medusaPublicKey = await medusa.fetchPublicKey()
+
+// Prompt a user to sign a message with their wallet and derive their medusa keypair from their (deterministic) signature
+const keypair = await medusa.signForKeypair();
+
+// Encrypt data towards Medusa
+const { encryptedData, encryptedKey } = await medusa.encrypt(
+  "This is secret!",
+  myApplicationContractAddress,
+);
+
+// If sending encryptedData to a JSON api endpoint, base64 is a convenient encoding to use
+import { Base64 } from "js-base64";
+const b64EncryptedData = Base64.fromUint8Array(encryptedData)
+
+// At this point, the encryptedKey should be submitted to Medusa as ciphertext.
+// The encryptedData should be stored in a public store like ipfs / Filecoin / Arweave / AWS s3 etc.
+
+// At a later point, another user would request the encryptedKey to be reencrypted towards themself
+// If that request is valid according to the application's access control policy,
+// the user will fetch the reencrypted key as ciphertext
+// The application should also fetch the encryptedContents from the data store
+
+// Decrypt encryptedContents using reencrypted ciphertext from Medusa
+// If a user has not signed a message for Medusa yet,
+// this will prompt them to sign a message in order to retrieve their Medusa private key
+const encryptedData = Base64.toUint8Array(b64EncryptedData); // Only if encryptedData was base64 encoded, then base64 decode
+const decryptedBytes = await medusa.decrypt(
+  ciphertext,
+  encryptedData,
+);
+const plaintext = new TextDecoder().decode(decryptedBytes) // To decode bytes to UTF-8
 ```
 
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
+# Development
+```bash
+yarn build:bindings
 
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
+yarn test
+
+yarn lint
+
+yarn build
 ```
-
-# Performance optimizations
-
-For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).

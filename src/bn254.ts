@@ -1,110 +1,106 @@
-import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
+import { buildBn128, WasmCurve, WasmField1 } from "ffjavascript";
+import { ok, err } from "neverthrow";
+import { BigNumber } from "ethers";
 
+import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
 import {
   EncodingRes,
   EncodingError,
   EVMEncoding,
   ABIEncoder,
+  ABIEncoded,
 } from "./encoding";
-import * as mcl from "mcl-wasm";
-import { randHex, onlyZero, bnToArray, arrayToBn } from "./utils";
-import { ok, err } from "neverthrow";
-import { BigNumber } from "ethers";
 import { ToBytes } from "../src/transcript";
 import { DleqSuite } from "./dleq";
-import { G2 } from "mcl-wasm";
+
+let IG1: WasmCurve;
+let IFr: WasmField1;
 
 /// Initiatlization of the suite and some constants
-export async function init(): Promise<void> {
-  await mcl.init(mcl.BN_SNARK1);
-  // mcl.setMapToMode(mcl.BN254);
-  suite = new Bn254Suite(new G1().random());
-  // suite = new Bn254Suite(new G1().fromEvm(new EVMG1Point(
-  //  // x
-  //  BigNumber.from("5671920232091439599101938152932944148754342563866262832106763099907508111378"),
-  //  // y
-  //  BigNumber.from("2648212145371980650762357218546059709774557459353804686023280323276775278879"),
-  // ))._unsafeUnwrap());
+export async function init(): Promise<Bn254Suite> {
+  // Only build curve once
+  globalThis.ffCurve ||= await buildBn128();
+  IG1 = globalThis.ffCurve.G1;
+  IFr = globalThis.ffCurve.Fr;
+  return new Bn254Suite();
 }
 
 export class Fr
   implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder
 {
-  f: mcl.Fr;
+  f: WasmField1;
+
   constructor() {
-    this.f = new mcl.Fr();
+    this.f = IFr.zero;
   }
 
-  abiEncode(): [Array<string>, Array<any>] {
-    return [["uint256"], [this.f.serialize()]];
+  abiEncode(): ABIEncoded {
+    return [["uint256"], [this.toEvm()]];
   }
 
   add(e: Fr): this {
-    this.f = mcl.add(this.f, e.f);
+    this.f = IFr.add(this.f, e.f);
     return this;
   }
 
   mul(e: Fr): this {
-    this.f = mcl.mul(this.f, e.f);
+    this.f = IFr.mul(this.f, e.f);
     return this;
   }
 
   neg(): this {
-    this.f = mcl.neg(this.f);
+    this.f = IFr.neg(this.f);
     return this;
   }
 
   inverse(): this {
-    this.f = mcl.inv(this.f);
+    this.f = IFr.inv(this.f);
     return this;
   }
 
   zero(): this {
-    this.f.setInt(0);
+    this.f = IFr.zero;
     return this;
   }
 
   random(): this {
-    this.f.setByCSPRNG();
+    this.f = IFr.random();
     return this;
   }
 
   one(): this {
-    this.f.setInt(1);
+    this.f = IFr.one;
     return this;
   }
 
   equal(e: Fr): boolean {
-    return this.f.isEqual(e.f);
+    return IFr.eq(this.f, e.f);
   }
 
   serialize(): Uint8Array {
-    return this.f.serialize();
+    const buff = new Uint8Array(32);
+    IFr.toRprLE(buff, 0, this.f);
+    return buff;
   }
 
   deserialize(buff: Uint8Array): EncodingRes<this> {
-    this.f.deserialize(buff);
-    // ??? no valid functions ???
+    this.f = IFr.fromRprLE(buff, 0);
     return ok(this);
   }
 
-  fromBytes(array: Uint8Array): this {
-    this.f.setLittleEndianMod(array);
-    return this;
-  }
-
   set(e: Fr): this {
-    const arr = e.f.serialize();
+    const arr = e.serialize();
     this.deserialize(arr)._unsafeUnwrap();
     return this;
   }
 
   toEvm(): BigNumber {
-    return arrayToBn(this.f.serialize());
+    const obj = IFr.toObject(this.f);
+    return BigNumber.from(obj);
   }
 
   fromEvm(t: BigNumber): EncodingRes<this> {
-    this.f.deserialize(bnToArray(t));
+    this.f = IFr.fromObject(t.toBigInt());
     return ok(this);
   }
 }
@@ -112,123 +108,102 @@ export class Fr
 export class G1
   implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
 {
-  p: mcl.G1;
+  p: Uint8Array;
+
   constructor() {
-    this.p = new mcl.G1();
+    this.p = IG1.g;
   }
 
-  abiEncode(): [Array<string>, Array<any>] {
+  abiEncode(): ABIEncoded {
     const evm = this.toEvm();
-    const xarray = bnToArray(evm.x, false, 32);
-    const yarray = bnToArray(evm.y, false, 32);
     return [
       ["uint256", "uint256"],
-      [xarray, yarray],
+      [evm.x, evm.y],
     ];
   }
 
   add(e: G1): this {
-    this.p = mcl.add(this.p, e.p);
+    this.p = IG1.add(this.p, e.p);
     return this;
   }
 
   mul(e: Fr): this {
-    this.p = mcl.mul(this.p, e.f);
+    this.p = IG1.timesFr(this.p, e.f);
     return this;
   }
 
   neg(): this {
-    this.p = mcl.neg(this.p);
+    this.p = IG1.neg(this.p);
     return this;
   }
 
   zero(): this {
+    this.p = IG1.zero;
     return this;
   }
 
   random(): this {
-    const random = randHex(32);
-    return this.setHashOf(random);
-  }
-
-  setHashOf(m: string): this {
-    this.p.setHashOf(m);
+    const f = IFr.random();
+    this.p = IG1.timesFr(IG1.g, f);
+    // this.p = IG1.fromRng(utils.getThreadRng());
     return this;
   }
 
+  // not yet available
+  // setHashOf(m: string): this {
+  //   this.p.setHashOf(m);
+  //   return this;
+  // }
+
   one(): this {
-    this.p.setStr("1 0x01 0x02", 16);
+    this.p = IG1.g;
     return this;
   }
 
   equal(e: G1): boolean {
-    this.p.normalize();
-    e.p.normalize();
-    return this.p.isEqual(e.p);
+    return IG1.eq(this.p, e.p);
   }
 
   serialize(): Uint8Array {
-    this.p.normalize();
-    return this.p.serialize();
+    const buff = new Uint8Array(64);
+    IG1.toRprCompressed(buff, 0, IG1.toAffine(this.p));
+    return buff;
   }
 
   deserialize(buff: Uint8Array): EncodingRes<this> {
-    this.p.deserialize(buff);
-    if (!this.p.isValid()) {
+    this.p = IG1.fromRprCompressed(buff, 0);
+    if (!IG1.isValid(this.p)) {
       return err(new EncodingError("invalid point"));
     }
     return ok(this);
   }
 
   set(e: G1): this {
-    const arr = e.p.serialize();
+    const arr = e.serialize();
     this.deserialize(arr)._unsafeUnwrap();
     return this;
   }
 
-  fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this> {
-    if (onlyZero(xbuff)) {
-      this.p.setStr("1 0x00 0x01");
-      return ok(this);
-    }
-    const x = new mcl.Fp();
-    x.deserialize(xbuff);
-    this.p.setX(x);
-
-    const y = new mcl.Fp();
-    y.deserialize(ybuff);
-    this.p.setY(y);
-
-    const z = new mcl.Fp();
-    z.setInt(1);
-    this.p.setZ(z);
-
-    if (!this.p.isValid() || !this.p.isValidOrder()) {
-      return err(new EncodingError("invalid x y coordinates"));
-    }
-    return ok(this);
-  }
-
   toEvm(): EVMG1Point {
-    this.p.normalize();
-    const x = BigNumber.from(this.p.getX().serialize().reverse());
-    const y = BigNumber.from(this.p.getY().serialize().reverse());
-    return new EVMG1Point(x, y);
+    const obj = IG1.toObject(IG1.toAffine(this.p));
+    return { x: BigNumber.from(obj[0]), y: BigNumber.from(obj[1]) };
   }
 
   fromEvm(p: EVMG1Point): EncodingRes<this> {
-    const x = bnToArray(p.x, true, 32);
-    const y = bnToArray(p.y, true, 32);
-    return this.fromXY(x, y);
+    this.p = IG1.fromObject([p.x.toBigInt(), p.y.toBigInt()]);
+    // XXX Not checking since it doesn't work the isZero function does not
+    // work as intended. Anyway, since it's coming from EVM we can
+    // be pretty sure the point is gonna be on the curve, since the contract
+    // checks the dleq proof
+    // console.log("bytelength => ", this.p.byteLength, " vs normal ", new G1().random().p.byteLength, " vs library ", IG1.F.n8 * 2);
+    if (!IG1.isValid(this.p)) {
+      return err(new EncodingError("invalid point"));
+    }
+    return ok(this);
   }
 }
-class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
-  _base2: G1;
 
-  constructor(base2: G1) {
-    this._base2 = base2;
-  }
-
+export class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   scalar(): Fr {
     return new Fr();
   }
@@ -242,9 +217,16 @@ class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
   }
 
   base2(): G1 {
-    return new G1().set(this._base2);
+    const x = BigNumber.from(
+      "5671920232091439599101938152932944148754342563866262832106763099907508111378"
+    ).toBigInt();
+    const y = BigNumber.from(
+      "2648212145371980650762357218546059709774557459353804686023280323276775278879"
+    ).toBigInt();
+    const ibase2 = IG1.fromObject([x, y]);
+    IG1.isValid(ibase2);
+    const base2 = new G1();
+    base2.p = ibase2;
+    return base2;
   }
 }
-
-let suite: Bn254Suite;
-export { suite };

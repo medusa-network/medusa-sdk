@@ -1,7 +1,10 @@
-import { KeyPair, newKeypair } from "./index";
+import { Keypair, Medusa } from "./index";
 import { Scalar, Point } from "./algebra";
 import { ok, err, Result } from "neverthrow";
-import { Ciphertext as HGamalCipher, EVMCipher as HGamalEVM } from "./hgamal";
+import {
+  Ciphertext as HGamalCipher,
+  EVMCipher as HGamalEVMCipher,
+} from "./hgamal";
 import * as hgamal from "./hgamal";
 import {
   EVMEncoding,
@@ -9,6 +12,7 @@ import {
   ABIAddress,
   EncodingRes,
   ABIUint256,
+  ABIEncoded,
 } from "./encoding";
 import { secretbox, randomBytes } from "tweetnacl";
 import { DleqSuite } from "./dleq";
@@ -62,11 +66,12 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     return new Label(medusaKey, platformAddress, encryptor);
   }
 
-  abiEncode(): [string[], any[]] {
+  abiEncode(): ABIEncoded {
     return ABIUint256(BigNumber.from(this.label)).abiEncode();
   }
 }
-export class EncryptionBundle<
+
+export interface EncryptionBundle<
   KeyCipherEVM,
   KeyCipher extends EVMEncoding<KeyCipherEVM>
 > {
@@ -74,10 +79,6 @@ export class EncryptionBundle<
   encryptedData: Uint8Array;
   /// key used to encrypt data, encrypted using Medusa, must be submitted to Medusa
   encryptedKey: KeyCipher;
-  constructor(d: Uint8Array, k: KeyCipher) {
-    this.encryptedData = d;
-    this.encryptedKey = k;
-  }
 }
 
 export class HGamalSuite<
@@ -99,7 +100,7 @@ export class HGamalSuite<
     label: Label
   ): Promise<
     Result<
-      EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
+      EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
       hgamal.EncryptionError
     >
   > {
@@ -122,7 +123,10 @@ export class HGamalSuite<
       transcript
     );
     if (medusaCipher.isOk()) {
-      return ok(new EncryptionBundle(fullMessage, medusaCipher.value));
+      return ok({
+        encryptedData: fullMessage,
+        encryptedKey: medusaCipher.value,
+      });
     } else {
       return err(medusaCipher.error);
     }
@@ -132,8 +136,8 @@ export class HGamalSuite<
   /// The public part of the keypair must be notified to Medusa (via the regular
   /// way of asking to reencrypt) and the secret part must be kept and given to
   /// "oneTimeDecrypt" when the reencryption arrived.
-  public keyForDecryption(): KeyPair<S, P> {
-    return newKeypair(this.suite);
+  public keyForDecryption(): Keypair<S, P> {
+    return Medusa.newKeypair(this.suite);
   }
 
   /// Decrypts a reencryption by medusa of the given bundle, using the
@@ -142,7 +146,7 @@ export class HGamalSuite<
     secret: S,
     medusaKey: P,
     // original ciphertext of the data and more importantly the key
-    bundle: EncryptionBundle<HGamalEVM, HGamalCipher<S, P>>,
+    bundle: EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
     // the reencryption of the key by the medusa network
     reencryption: hgamal.MedusaReencryption<S, P>
   ): Promise<hgamal.DecryptionRes> {

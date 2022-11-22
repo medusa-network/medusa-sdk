@@ -1,18 +1,18 @@
 {
   "name": "@medusa-network/medusa-sdk",
-  "version": "0.0.1-rc6",
-  "description": "",
+  "version": "0.0.1",
+  "description": "The Typescript library for developers to use with Medusa-enabled applications",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   },
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/src/index.js",
+  "types": "lib/src/index.d.ts",
   "files": [
     "/lib"
   ],
   "scripts": {
-    "build:contracts": "cd contracts && forge install && forge build",
-    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/**/*.json",
+    "build:contracts": "cd contracts && forge clean && forge install && forge build",
+    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/*[!.t].sol/*.json",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
@@ -29,7 +29,7 @@
     "ffjavascript": "^0.2.56",
     "hardhat": "^2.9.5",
     "js-crypto-hkdf": "^1.0.4",
-    "mcl-wasm": "^1.0.2",
+    "minimatch": "3.0.5",
     "neverthrow": "^4.3.1",
     "tweetnacl": "^1.0.3"
   },
