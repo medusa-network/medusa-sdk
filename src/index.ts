@@ -88,10 +88,11 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     const suite = await medusaContract.suite();
 
     switch (suite as SuiteType) {
-      case SuiteType.BN254_KEYG1_HGAMAL:
+      case SuiteType.BN254_KEYG1_HGAMAL: {
         const medu = new Medusa(await initBn254(), signer, medusaAddress);
         await medu.fetchPublicKey();
         return medu;
+      }
       default:
         throw new Error(`unknown suite type: ${suite}`);
     }
