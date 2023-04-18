@@ -23,8 +23,8 @@
     "node": ">=16.0.0"
   },
   "keywords": [],
-  "author": "Cryptonet",
-  "license": "ISC",
+  "author": "Medusa Community <info@medusanet.xyz>",
+  "license": "MIT and Apache-2.0",
   "dependencies": {
     "ffjavascript": "^0.2.56",
     "hardhat": "^2.9.5",
