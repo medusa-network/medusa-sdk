@@ -20,12 +20,16 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           always-auth: true
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.2.0
+
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
 
-      - run: yarn install --frozen-lockfile
-      - run: yarn publish --access public
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

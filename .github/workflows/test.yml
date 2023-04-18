@@ -26,22 +26,26 @@ jobs:
         with:
           node-version: 16
 
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.2.0
+
       # Need foundry to build medusa contracts for typechain bindings
       - name: Install Foundry
         uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
 
-      - run: yarn install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
       - name: Build Bindings
-        run: yarn build:bindings
+        run: pnpm build:bindings
 
       - name: Compile typescript into javascript
-        run: yarn build
+        run: pnpm build
 
       - name: Lint check
-        run: yarn lint
+        run: pnpm lint
 
       - name: Test
-        run: yarn test
+        run: pnpm test
