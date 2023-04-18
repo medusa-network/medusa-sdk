@@ -11,8 +11,8 @@
     "/lib"
   ],
   "scripts": {
-    "build:contracts": "cd contracts && forge clean && forge install && forge build",
-    "build:typechain": "typechain --target ethers-v5 --out-dir typechain contracts/out/*[!.t].sol/*.json",
+    "build:contracts": "cd contracts && forge clean && forge install && forge build --skip test --skip script --skip Playground",
+    "build:typechain": "typechain --target ethers-v5 --out-dir typechain 'contracts/out/*.sol/*.json'",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
@@ -24,7 +24,7 @@
   },
   "keywords": [],
   "author": "Medusa Community <info@medusanet.xyz>",
-  "license": "MIT and Apache-2.0",
+  "license": "MIT AND Apache-2.0",
   "dependencies": {
     "ffjavascript": "^0.2.56",
     "hardhat": "^2.9.5",
