@@ -15,6 +15,7 @@ import {
   /* eslint-disable-next-line camelcase */
   ThresholdNetwork__factory,
 } from '../typechain';
+import { MedusaClient__factory } from '../typechain/factories/MedusaClient.sol';
 
 export { HGamalEVMCipher };
 export { EVMG1Point } from './algebra';
@@ -107,7 +108,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     S extends Scalar,
     P extends Point<S>,
     C extends Curve<S, P>,
-  >(curve: C): Keypair<S, P> {
+    >(curve: C): Keypair<S, P> {
     const priv = curve.scalar().random();
     const pubkey = curve.point().one().mul(priv);
     const kp: Keypair<S, P> = {
@@ -221,7 +222,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Decrypt a message that has been reencrypted for a user
    * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
-   * @param {Uint8Array} encryptedContents to decrypt
+   * @param {Uint8Array} encryptedData to decrypt
    * @returns {Promise<Uint8Array>} The decrypted data
    */
   async decrypt(
@@ -250,5 +251,31 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       cipher,
     );
     return decryptionRes._unsafeUnwrap();
+  }
+
+  /**
+   * Estimates the callback gas for a given contract address.
+   *
+   * @async
+   * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
+   * @returns {Promise<BigNumber>} A promise that resolves to the estimated callback gas as a BigNumber.
+   */
+  async estimateCallbackGas(contractAddress: string): Promise<BigNumber> {
+    const oracle = EncryptionOracle__factory.connect(
+      this.medusaAddress,
+      this.signer,
+    );
+    const medusaClient = MedusaClient__factory.connect(
+      contractAddress,
+      this.signer,
+    );
+    const totalGas =
+      await medusaClient.estimateGas.estimateGasForDeliverReencryption();
+    const subGas = await oracle.estimateGas.requestReencryption(
+      BigNumber.from(1),
+      { x: BigNumber.from(1), y: BigNumber.from(1) },
+    );
+    const gas = totalGas.sub(subGas);
+    return gas;
   }
 }
