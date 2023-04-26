@@ -1,6 +1,6 @@
-import { BigNumber, ethers } from "ethers";
-import { Scalar } from "./algebra";
-import { ABIEncoder, ABIEncodedLabels, ABIEncodedValues } from "./encoding";
+import { BigNumber, ethers } from 'ethers';
+import { Scalar } from './algebra';
+import { ABIEncoder, ABIEncodedLabels, ABIEncodedValues } from './encoding';
 
 export interface ToBytes {
   serialize(): Uint8Array;
@@ -9,7 +9,7 @@ export interface ToBytes {
 export interface EVMTranscript {
   challengeFrom<S extends Scalar, T extends ABIEncoder>(
     elements: T[],
-    into: S
+    into: S,
   ): S;
   append<T extends ABIEncoder>(e: T): this;
   challenge<S extends Scalar>(into: S): S;
@@ -30,7 +30,7 @@ export class ShaTranscript implements EVMTranscript {
   /// TODO potentially remove this.
   challengeFrom<S extends Scalar, T extends ABIEncoder>(
     elements: T[],
-    into: S
+    into: S,
   ): S {
     return ShaTranscript.challengeFrom(elements, into);
   }
@@ -57,11 +57,11 @@ export class ShaTranscript implements EVMTranscript {
   /// challenge from an array directly
   static challengeFrom<S extends Scalar, T extends ABIEncoder>(
     elements: T[],
-    into: S
+    into: S,
   ): S {
     let hasher = new ShaTranscript();
     for (const e of elements) {
-      console.log("elemnt: ", e, " but all ", elements);
+      console.log('elemnt: ', e, ' but all ', elements);
       hasher = hasher.append(e);
     }
     return hasher.challenge(into);

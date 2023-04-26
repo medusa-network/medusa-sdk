@@ -1,13 +1,13 @@
-import { Curve, EVMG1Point, Point, Scalar } from "./algebra";
-import { PublicKey, SecretKey } from "./index";
-import { ok, err, Result } from "neverthrow";
-import * as crypto from "crypto";
-import assert from "assert";
-import { EncodingRes, EVMEncoding } from "./encoding";
-import { bnToArray } from "./utils";
-import { EVMTranscript } from "./transcript";
-import * as dleq from "./dleq";
-import { BigNumber } from "ethers";
+import { Curve, EVMG1Point, Point, Scalar } from './algebra';
+import { PublicKey, SecretKey } from './index';
+import { ok, err, Result } from 'neverthrow';
+import * as crypto from 'crypto';
+import assert from 'assert';
+import { EncodingRes, EVMEncoding } from './encoding';
+import { bnToArray } from './utils';
+import { EVMTranscript } from './transcript';
+import * as dleq from './dleq';
+import { BigNumber } from 'ethers';
 
 export interface EVMCipher {
   random: EVMG1Point;
@@ -34,13 +34,13 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   }
 
   static default<S extends Scalar, P extends Point<S>>(
-    c: Curve<S, P>
+    c: Curve<S, P>,
   ): Ciphertext<S, P> {
     return new Ciphertext(
       c.point(),
       new Uint8Array(),
       c.point(),
-      dleq.Proof.default(c)
+      dleq.Proof.default(c),
     );
   }
 
@@ -83,13 +83,13 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
   }
 
   static default<S extends Scalar, P extends Point<S>>(
-    c: Curve<S, P>
+    c: Curve<S, P>,
   ): MedusaReencryption<S, P> {
     return new MedusaReencryption(c.point());
   }
 
   toEvm(): EVMMedusaReencryption {
-    throw new Error("This method should never be called?");
+    throw new Error('This method should never be called?');
   }
 
   fromEvm(t: EVMMedusaReencryption): EncodingRes<this> {
@@ -111,7 +111,7 @@ export class EncryptionError extends Error {
   }
 
   getErrorMessage(): string {
-    return "encryption err: " + this.message;
+    return 'encryption err: ' + this.message;
   }
 }
 
@@ -123,10 +123,10 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   suite: dleq.DleqSuite<S, P>,
   recipient: P,
   msg: Uint8Array,
-  transcript: EVMTranscript
+  transcript: EVMTranscript,
 ): Promise<EncryptionRes<S, P>> {
   if (msg.length !== HKDF_SIZE) {
-    return err(new EncryptionError("invalid plaintext size"));
+    return err(new EncryptionError('invalid plaintext size'));
   }
   // { rG, H(rP) ^ m } where P = pG public key recipient
   const r = suite.scalar().random();
@@ -149,19 +149,19 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
 export type DecryptionRes = Result<Uint8Array, EncryptionError>;
 export async function decryptReencryption<
   S extends SecretKey,
-  P extends PublicKey<S>
+  P extends PublicKey<S>,
 >(
   suite: dleq.DleqSuite<S, P>,
   priv: S,
   proxyPub: P,
   original: Ciphertext<S, P>,
-  reencrypted: MedusaReencryption<S, P>
+  reencrypted: MedusaReencryption<S, P>,
 ): Promise<DecryptionRes> {
   // XXX not really needed since smart contract does it
   // TODO place this when we read all submitted ciperthext,
   // we must verify if they are legit
   if (original.cipher.length !== HKDF_SIZE) {
-    return err(new EncryptionError("invalid cipher size"));
+    return err(new EncryptionError('invalid cipher size'));
   }
   // P=pG proxy public key
   // B=bG recipient public key
@@ -180,9 +180,9 @@ export async function decryptReencryption<
 
 // TODO should it use async version ?
 export async function sharedKey<S extends Scalar, P extends Point<S>>(
-  p: P
+  p: P,
 ): Promise<Uint8Array> {
-  const h = crypto.createHash("sha256");
+  const h = crypto.createHash('sha256');
   const data = p.toEvm();
   h.update(bnToArray(data.x, true));
   h.update(bnToArray(data.y, true));

@@ -1,8 +1,8 @@
-import { BigNumber } from "ethers";
-import { ok } from "neverthrow";
-import { Point, Scalar, Curve } from "./algebra";
-import { EncodingRes, EVMEncoding } from "./encoding";
-import { EVMTranscript } from "./transcript";
+import { BigNumber } from 'ethers';
+import { ok } from 'neverthrow';
+import { Point, Scalar, Curve } from './algebra';
+import { EncodingRes, EVMEncoding } from './encoding';
+import { EVMTranscript } from './transcript';
 
 /// Suite needed by the dleq module: must use two distinct base where we don't know the
 /// dlog of each.
@@ -30,7 +30,7 @@ export class Proof<S extends Scalar> implements EVMEncoding<EVMProof> {
   }
 
   static default<S extends Scalar, P extends Point<S>>(
-    c: Curve<S, P>
+    c: Curve<S, P>,
   ): Proof<S> {
     return new Proof(c.scalar(), c.scalar());
   }
@@ -61,21 +61,21 @@ export function prove<
   S extends Scalar,
   P extends Point<S>,
   Suite extends DleqSuite<S, P>,
-  T extends EVMTranscript
+  T extends EVMTranscript,
 >(
   suite: Suite,
   tr: T,
   // rg1= r*G1, rg2 = r*G2
   secret: S,
   rg1: P,
-  rg2: P
+  rg2: P,
 ): Proof<S> {
   const t = suite.scalar().random();
   // w1 = t*G1, w2 = t*G2
   const w1 = suite.base1().mul(t);
   const w2 = suite.base2().mul(t);
-  console.log("local w1 -> ", w1.toEvm().x.toString());
-  console.log("local w2 -> ", w2.toEvm().x.toString());
+  console.log('local w1 -> ', w1.toEvm().x.toString());
+  console.log('local w2 -> ', w2.toEvm().x.toString());
   const challenge: S = tr
     .append(rg1)
     .append(rg2)
@@ -91,7 +91,7 @@ export function verify<
   S extends Scalar,
   P extends Point<S>,
   Suite extends DleqSuite<S, P>,
-  T extends EVMTranscript
+  T extends EVMTranscript,
 >(suite: Suite, tr: T, rg1: P, rg2: P, proof: Proof<S>): boolean {
   // w1 = f*G1 + rG1 * e
   const w1 = suite

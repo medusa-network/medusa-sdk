@@ -1,17 +1,17 @@
-import { buildBn128, WasmCurve, WasmField1 } from "ffjavascript";
-import { ok, err } from "neverthrow";
-import { BigNumber } from "ethers";
+import { buildBn128, WasmCurve, WasmField1 } from 'ffjavascript';
+import { ok, err } from 'neverthrow';
+import { BigNumber } from 'ethers';
 
-import { Curve, Atom, Scalar, Point, EVMG1Point } from "./algebra";
+import { Curve, Atom, Scalar, Point, EVMG1Point } from './algebra';
 import {
   EncodingRes,
   EncodingError,
   EVMEncoding,
   ABIEncoder,
   ABIEncoded,
-} from "./encoding";
-import { ToBytes } from "../src/transcript";
-import { DleqSuite } from "./dleq";
+} from './encoding';
+import { ToBytes } from '../src/transcript';
+import { DleqSuite } from './dleq';
 
 let IG1: WasmCurve;
 let IFr: WasmField1;
@@ -25,9 +25,7 @@ export async function init(): Promise<Bn254Suite> {
   return new Bn254Suite();
 }
 
-export class Fr
-  implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder
-{
+export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder {
   f: WasmField1;
 
   constructor() {
@@ -35,7 +33,7 @@ export class Fr
   }
 
   abiEncode(): ABIEncoded {
-    return [["uint256"], [this.toEvm()]];
+    return [['uint256'], [this.toEvm()]];
   }
 
   add(e: Fr): this {
@@ -117,7 +115,7 @@ export class G1
   abiEncode(): ABIEncoded {
     const evm = this.toEvm();
     return [
-      ["uint256", "uint256"],
+      ['uint256', 'uint256'],
       [evm.x, evm.y],
     ];
   }
@@ -173,7 +171,7 @@ export class G1
   deserialize(buff: Uint8Array): EncodingRes<this> {
     this.p = IG1.fromRprCompressed(buff, 0);
     if (!IG1.isValid(this.p)) {
-      return err(new EncodingError("invalid point"));
+      return err(new EncodingError('invalid point'));
     }
     return ok(this);
   }
@@ -197,7 +195,7 @@ export class G1
     // checks the dleq proof
     // console.log("bytelength => ", this.p.byteLength, " vs normal ", new G1().random().p.byteLength, " vs library ", IG1.F.n8 * 2);
     if (!IG1.isValid(this.p)) {
-      return err(new EncodingError("invalid point"));
+      return err(new EncodingError('invalid point'));
     }
     return ok(this);
   }
@@ -218,10 +216,10 @@ export class Bn254Suite implements Curve<Fr, G1>, DleqSuite<Fr, G1> {
 
   base2(): G1 {
     const x = BigNumber.from(
-      "5671920232091439599101938152932944148754342563866262832106763099907508111378"
+      '5671920232091439599101938152932944148754342563866262832106763099907508111378',
     ).toBigInt();
     const y = BigNumber.from(
-      "2648212145371980650762357218546059709774557459353804686023280323276775278879"
+      '2648212145371980650762357218546059709774557459353804686023280323276775278879',
     ).toBigInt();
     const ibase2 = IG1.fromObject([x, y]);
     IG1.isValid(ibase2);

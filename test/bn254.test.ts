@@ -1,13 +1,13 @@
-import assert from "assert";
-import { BigNumber } from "ethers";
-import { WasmCurve, WasmField1 } from "ffjavascript";
-import { ethers } from "hardhat";
+import assert from 'assert';
+import { BigNumber } from 'ethers';
+import { WasmCurve, WasmField1 } from 'ffjavascript';
+import { ethers } from 'hardhat';
 /* eslint-disable-next-line camelcase */
-import { Playground__factory } from "../typechain";
-import { init, Bn254Suite } from "../src/bn254";
-import { EVMG1Point } from "../src/algebra";
+import { Playground__factory } from '../typechain';
+import { init, Bn254Suite } from '../src/bn254';
+import { EVMG1Point } from '../src/algebra';
 
-describe("use ident", async () => {
+describe('use ident', async () => {
   let group: WasmCurve;
   let field: WasmField1;
   let suite: Bn254Suite;
@@ -27,7 +27,7 @@ describe("use ident", async () => {
   //   console.log("y:", e.y.toString());
   // });
 
-  it("suite serialization works", async () => {
+  it('suite serialization works', async () => {
     const p1 = suite.point().random();
     const buff = p1.serialize();
     const p2 = suite.point().deserialize(buff);
@@ -41,7 +41,7 @@ describe("use ident", async () => {
     assert.ok(f2._unsafeUnwrap().equal(f1));
   }).timeout(1000000);
 
-  it("scalar work", async () => {
+  it('scalar work', async () => {
     const s1 = field.one;
     const s2 = field.one;
     const s3 = field.add(s1, s2);
@@ -51,7 +51,7 @@ describe("use ident", async () => {
     assert.ok(field.isZero(s5));
   });
 
-  it("point work", async () => {
+  it('point work', async () => {
     const g1 = group.g;
     const f1 = field.random();
     const g2 = group.timesScalar(g1, f1);
@@ -139,29 +139,29 @@ describe("use ident", async () => {
   //   console.log("random p.y: ", hexlify(p1.p.getY().serialize()));
   // });
 
-  it("is compatible with EVM", async () => {
+  it('is compatible with EVM', async () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     const f = field.random();
     const g = group.timesScalar(group.g, f);
     let evmRes = await testContract.identity(pointToEvm(g));
     let decoded = evmToPoint(evmRes);
-    assert.ok(group.eq(decoded, g), "identity check fail");
+    assert.ok(group.eq(decoded, g), 'identity check fail');
 
     // scalar mult
     const gf = group.timesFr(group.g, f);
     evmRes = await testContract.scalarMul(pointToEvm(group.g), scalarToEvm(f));
     decoded = evmToPoint(evmRes);
-    assert.ok(group.eq(decoded, gf), "scalar mult failing");
+    assert.ok(group.eq(decoded, gf), 'scalar mult failing');
 
     // point addition
     const sum = group.add(decoded, decoded);
     evmRes = await testContract.pointAdd(
       pointToEvm(decoded),
-      pointToEvm(decoded)
+      pointToEvm(decoded),
     );
     decoded = evmToPoint(evmRes);
-    assert.ok(group.eq(decoded, sum), "point addition fail");
+    assert.ok(group.eq(decoded, sum), 'point addition fail');
 
     // id scalar
     const evmScalarRes = await testContract.idScalar(scalarToEvm(f));
@@ -169,14 +169,14 @@ describe("use ident", async () => {
     assert.ok(field.eq(f, scalar));
   });
 
-  it("suite works as expected", async () => {
+  it('suite works as expected', async () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     const p1 = suite.point().random();
     let evmRes = await testContract.identity(p1.toEvm());
     assert.ok(
       suite.point().fromEvm(evmRes)._unsafeUnwrap(),
-      "suite identity fail"
+      'suite identity fail',
     );
 
     const p2 = suite.point().random();
@@ -189,6 +189,6 @@ describe("use ident", async () => {
     const p4 = suite.point().set(p1).mul(f);
     evmRes = await testContract.scalarMul(p1.toEvm(), f.toEvm());
     decoded = suite.point().fromEvm(evmRes)._unsafeUnwrap();
-    assert.ok(p4.equal(decoded), "scalar mul not working");
+    assert.ok(p4.equal(decoded), 'scalar mul not working');
   });
 });
