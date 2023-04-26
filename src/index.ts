@@ -19,6 +19,7 @@ import { MedusaClient__factory } from '../typechain/factories/MedusaClient.sol';
 
 export { HGamalEVMCipher };
 export { EVMG1Point } from './algebra';
+import { RELAYER_ADDR } from './consts';
 
 // The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
@@ -263,19 +264,25 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   async estimateCallbackGas(contractAddress: string): Promise<BigNumber> {
     const oracle = EncryptionOracle__factory.connect(
       this.medusaAddress,
-      this.signer,
+      this.signer.provider!,
     );
-    const medusaClient = MedusaClient__factory.connect(
+    const gasUnits = await oracle.estimateGas.estimateDeliverReencryption(
+      BigNumber.from(0),
+      {
+        random: { x: BigNumber.from(1), y: BigNumber.from(1) },
+      },
       contractAddress,
-      this.signer,
+      { from: RELAYER_ADDR },
     );
-    const totalGas =
-      await medusaClient.estimateGas.estimateGasForDeliverReencryption();
-    const subGas = await oracle.estimateGas.requestReencryption(
-      BigNumber.from(1),
-      { x: BigNumber.from(1), y: BigNumber.from(1) },
-    );
-    const gas = totalGas.sub(subGas);
-    return gas;
+
+    const feeData = await this.signer.getFeeData();
+    let gasPrice = feeData.maxFeePerGas!;
+    // If the base fee == 0, we are probably in localhost so multiply gas price by 2 to account for 0 base fee
+    if (feeData.lastBaseFeePerGas?.eq(BigNumber.from(0))) {
+      gasPrice = gasPrice.mul(2);
+    }
+
+    // Gas * price * 1.3 (30% estimation markup)
+    return gasUnits.mul(gasPrice).mul(130).div(100);
   }
 }
