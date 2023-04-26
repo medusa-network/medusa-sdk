@@ -44,8 +44,8 @@ jobs:
       - name: Compile typescript into javascript
         run: pnpm build
 
-      - name: Lint check
-        run: pnpm lint
-
       - name: Test
         run: pnpm test
+
+      - name: Lint check
+        run: pnpm lint
