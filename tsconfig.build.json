@@ -1,8 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": [
-    "./scripts",
-    "./test",
-    "./hardhat.config.ts"
-  ]
+  "exclude": ["./typechain", "./scripts", "./test", "./hardhat.config.ts"]
 }

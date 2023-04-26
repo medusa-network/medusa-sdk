@@ -66,7 +66,7 @@ describe('dleq proof', () => {
       .append(hashP)
       .digest();
     console.log(finalSha);
-    assert.strictEqual(evmVersion, finalSha);
+    assert.strictEqual(evmVersion.toHexString(), finalSha);
   });
 
   it('onchain dleq proof verification', async () => {

@@ -7,6 +7,7 @@ import { HGamalSuite, Label } from '../src/encrypt';
 import { reencrypt } from './utils';
 /* eslint-disable-next-line camelcase */
 import { Playground__factory } from '../typechain';
+import { RELAYER_ADDR } from '../src/consts';
 
 describe('medusa encryption', () => {
   const msgStr =
@@ -31,7 +32,7 @@ describe('medusa encryption', () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     // deploy the oracle first so we can use  it _via_ the playground to simulate an app
-    await testContract.deployOracle(medusa.pubkey.toEvm());
+    await testContract.deployOracle(medusa.pubkey.toEvm(), RELAYER_ADDR);
 
     const label = Label.from(
       medusa.pubkey,
@@ -47,7 +48,7 @@ describe('medusa encryption', () => {
     const encryptor = owner.address;
 
     const txReceipt = await (
-      await testContract.submitCiphertextToOracle(cipherEVM, link, encryptor)
+      await testContract.submitCiphertextToOracle(cipherEVM, encryptor)
     ).wait();
 
     const event = txReceipt.events?.find((e) => e.event === 'Ciphertext');

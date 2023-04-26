@@ -8,6 +8,8 @@ import { DleqSuite } from './dleq';
 import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
+  MedusaReencryption as HGamalReencryptedCipher,
+  EVMReencryptedCipher as HGamalEVMReencryptedCipher,
 } from './hgamal';
 import {
   /* eslint-disable-next-line camelcase */
@@ -15,9 +17,8 @@ import {
   /* eslint-disable-next-line camelcase */
   ThresholdNetwork__factory,
 } from '../typechain';
-import { MedusaClient__factory } from '../typechain/factories/MedusaClient.sol';
 
-export { HGamalEVMCipher };
+export { HGamalEVMCipher, HGamalEVMReencryptedCipher };
 export { EVMG1Point } from './algebra';
 import { RELAYER_ADDR } from './consts';
 
@@ -223,11 +224,13 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Decrypt a message that has been reencrypted for a user
    * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
+   * @param {HGamalEVMReencryptedCipher} reencryptedCipher of encrypted key to decrypt encryptedContents
    * @param {Uint8Array} encryptedData to decrypt
    * @returns {Promise<Uint8Array>} The decrypted data
    */
   async decrypt(
     ciphertext: HGamalEVMCipher,
+    reencryptedCipher: HGamalEVMReencryptedCipher,
     encryptedData: Uint8Array,
   ): Promise<Uint8Array> {
     const hgamalSuite = new HGamalSuite(this.suite);
@@ -235,6 +238,9 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     // Convert the ciphertext to a format that the Medusa SDK can use
     const cipher = HGamalCipher.default(this.suite)
       .fromEvm(ciphertext)
+      ._unsafeUnwrap();
+    const reencryption = HGamalReencryptedCipher.default(this.suite)
+      .fromEvm(reencryptedCipher)
       ._unsafeUnwrap();
 
     // Create bundle with encrypted data and extraneous cipher (not used)
@@ -249,7 +255,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       kp.secret,
       await this.fetchPublicKey(),
       bundle,
-      cipher,
+      reencryption,
     );
     return decryptionRes._unsafeUnwrap();
   }

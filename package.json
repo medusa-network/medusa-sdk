@@ -7,16 +7,15 @@
   },
   "main": "lib/src/index.js",
   "types": "lib/src/index.d.ts",
-  "files": [
-    "/lib"
-  ],
+  "files": ["/lib"],
   "scripts": {
+    "test:contracts": "cd contracts && forge clean && forge install && forge build --skip test --skip script",
     "build:contracts": "cd contracts && forge clean && forge install && forge build --skip test --skip script --skip Playground",
-    "build:typechain": "typechain --target ethers-v5 --out-dir typechain 'contracts/out/*.sol/*.json'",
+    "build:typechain": "rm -rf typechain && typechain --target ethers-v5 --out-dir typechain 'contracts/out/*.sol/*.json'",
     "build:bindings": "npm run build:contracts && npm run build:typechain",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run build:bindings && tsc -p tsconfig.build.json",
     "lint": "eslint src/**",
-    "test": "hardhat test",
+    "test": "npm run test:contracts && npm run build:typechain && hardhat test",
     "prepack": "npm run build:bindings && npm run build"
   },
   "engines": {
