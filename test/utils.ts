@@ -1,12 +1,12 @@
-import { KeyPair } from "../src";
-import { Curve, Point, Scalar } from "../src/algebra";
-import * as hgamal from "../src/hgamal";
+import { KeyPair } from '../src';
+import { Curve, Point, Scalar } from '../src/algebra';
+import * as hgamal from '../src/hgamal';
 
 export function reencrypt<S extends Scalar, P extends Point<S>>(
   c: Curve<S, P>,
   kp: KeyPair<S, P>,
   recipient: P,
-  cipher: hgamal.Ciphertext<S, P>
+  cipher: hgamal.Ciphertext<S, P>,
 ): hgamal.MedusaReencryption<S, P> {
   // Input is { rG, H(rP) ^ m }
   // where P=pG is public key of proxy (kp)

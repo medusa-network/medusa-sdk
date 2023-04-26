@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { BigNumber } from "ethers";
-import { arrayify, hexlify, hexZeroPad, randomBytes } from "ethers/lib/utils";
-import { ChaCha } from "ffjavascript";
-import crypto from "crypto";
+import { BigNumber } from 'ethers';
+import { arrayify, hexlify, hexZeroPad, randomBytes } from 'ethers/lib/utils';
+import { ChaCha } from 'ffjavascript';
+import crypto from 'crypto';
 
 export function randHex(n: number): string {
   return hexlify(randomBytes(n));
@@ -15,12 +15,12 @@ export function onlyZero(b: Uint8Array): boolean {
 export function bnToArray(
   big: BigNumber,
   reverse = false,
-  padToLength = 0
+  padToLength = 0,
 ): Uint8Array {
   const arr = arrayify(
     padToLength > 0
       ? hexZeroPad(big.toHexString(), padToLength)
-      : big.toHexString()
+      : big.toHexString(),
   );
 
   if (reverse) {
@@ -43,7 +43,7 @@ export function getRandomBytes(n: number): Uint8Array {
   // @ts-ignore
   if (process.browser) {
     // Browser
-    if (typeof globalThis.crypto !== "undefined") {
+    if (typeof globalThis.crypto !== 'undefined') {
       // Supported
       globalThis.crypto.getRandomValues(array);
     } else {

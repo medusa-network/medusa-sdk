@@ -1,22 +1,22 @@
 /* eslint-disable no-unused-expressions */
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { BigNumber } from "ethers";
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+import { BigNumber } from 'ethers';
 /* eslint-disable-next-line camelcase */
-import { Playground__factory } from "../typechain";
-import { Proof as DleqProof } from "../src/dleq";
-import { Bn254Suite, init } from "../src/bn254";
-import { hexlify, randomBytes } from "ethers/lib/utils";
-import assert from "assert";
+import { Playground__factory } from '../typechain';
+import { Proof as DleqProof } from '../src/dleq';
+import { Bn254Suite, init } from '../src/bn254';
+import { hexlify, randomBytes } from 'ethers/lib/utils';
+import assert from 'assert';
 
-describe("Test Encoding ", () => {
+describe('Test Encoding ', () => {
   let curve: Bn254Suite;
 
   before(async () => {
     curve = await init();
   });
 
-  it("local encoding & decoding curve", () => {
+  it('local encoding & decoding curve', () => {
     const s = curve.scalar().random();
     const p = curve.point().random();
     const sevm = s.toEvm();
@@ -29,7 +29,7 @@ describe("Test Encoding ", () => {
     expect(pfound._unsafeUnwrap().equal(p)).to.be.true;
   });
 
-  it("encoding g1point evm", async () => {
+  it('encoding g1point evm', async () => {
     const [owner] = await ethers.getSigners();
     const test = await new Playground__factory(owner).deploy();
     const random = curve.point().random();
@@ -53,19 +53,19 @@ describe("Test Encoding ", () => {
     expect(r._unsafeUnwrap().equal(random)).to.be.true;
   });
 
-  it("non-aligned values from EVM are zero-padded to 32 bytes", () => {
+  it('non-aligned values from EVM are zero-padded to 32 bytes', () => {
     const x = BigNumber.from(
-      "69433070941023771994177046973345245040155856504302196671035682426544325470"
+      '69433070941023771994177046973345245040155856504302196671035682426544325470',
     );
     const y = BigNumber.from(
-      "3933316350851654905519662377468250369417328085252457770283816391639153292475"
+      '3933316350851654905519662377468250369417328085252457770283816391639153292475',
     );
 
     // Note: Errors if values are not deserialized correctly to 32-bytes
     curve.point().fromEvm({ x, y });
   });
 
-  it("decode g1point", async () => {
+  it('decode g1point', async () => {
     const point = curve.point().random();
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
@@ -79,7 +79,7 @@ describe("Test Encoding ", () => {
     expect(foundp.equal(point)).to.be.true;
   });
 
-  it("produce g1point for ruse", async () => {
+  it('produce g1point for ruse', async () => {
     const s = curve.scalar().random();
     const p = curve.point().one().mul(s);
     const shex = s.toEvm();

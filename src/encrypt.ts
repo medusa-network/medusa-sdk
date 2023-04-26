@@ -1,11 +1,11 @@
-import { Keypair, Medusa } from "./index";
-import { Scalar, Point } from "./algebra";
-import { ok, err, Result } from "neverthrow";
+import { Keypair, Medusa } from './index';
+import { Scalar, Point } from './algebra';
+import { ok, err, Result } from 'neverthrow';
 import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
-} from "./hgamal";
-import * as hgamal from "./hgamal";
+} from './hgamal';
+import * as hgamal from './hgamal';
 import {
   EVMEncoding,
   ABIEncoder,
@@ -13,11 +13,11 @@ import {
   EncodingRes,
   ABIUint256,
   ABIEncoded,
-} from "./encoding";
-import { secretbox, randomBytes } from "tweetnacl";
-import { DleqSuite } from "./dleq";
-import { ShaTranscript } from "./transcript";
-import { BigNumber, ethers } from "ethers";
+} from './encoding';
+import { secretbox, randomBytes } from 'tweetnacl';
+import { DleqSuite } from './dleq';
+import { ShaTranscript } from './transcript';
+import { BigNumber, ethers } from 'ethers';
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
@@ -28,16 +28,16 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   constructor(
     medusaKey: ABIEncoder,
     platformAddress: string,
-    encryptor: string
+    encryptor: string,
   ) {
     if (!ethers.utils.isAddress(platformAddress)) {
       throw new Error(
-        "invalid platform address specified for label: " + platformAddress
+        'invalid platform address specified for label: ' + platformAddress,
       );
     }
     if (!ethers.utils.isAddress(encryptor)) {
       throw new Error(
-        "invalid encryptor address specified for label: " + encryptor
+        'invalid encryptor address specified for label: ' + encryptor,
       );
     }
     this.label = new ShaTranscript()
@@ -55,13 +55,13 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   }
 
   fromEvm(t: BigNumber): EncodingRes<this> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   static from<S extends Scalar, P extends Point<S>>(
     medusaKey: P,
     platformAddress: string,
-    encryptor: string
+    encryptor: string,
   ): Label {
     return new Label(medusaKey, platformAddress, encryptor);
   }
@@ -73,7 +73,7 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
 
 export interface EncryptionBundle<
   KeyCipherEVM,
-  KeyCipher extends EVMEncoding<KeyCipherEVM>
+  KeyCipher extends EVMEncoding<KeyCipherEVM>,
 > {
   /// data encrypted symmetrically, can be stored anywhere like IPFS
   encryptedData: Uint8Array;
@@ -84,7 +84,7 @@ export interface EncryptionBundle<
 export class HGamalSuite<
   S extends Scalar,
   P extends Point<S>,
-  Suite extends DleqSuite<S, P>
+  Suite extends DleqSuite<S, P>,
 > {
   suite: Suite;
 
@@ -97,7 +97,7 @@ export class HGamalSuite<
   public async encryptToMedusa(
     data: Uint8Array,
     medusaKey: P,
-    label: Label
+    label: Label,
   ): Promise<
     Result<
       EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
@@ -120,7 +120,7 @@ export class HGamalSuite<
       this.suite,
       medusaKey,
       key,
-      transcript
+      transcript,
     );
     if (medusaCipher.isOk()) {
       return ok({
@@ -148,7 +148,7 @@ export class HGamalSuite<
     // original ciphertext of the data and more importantly the key
     bundle: EncryptionBundle<HGamalEVMCipher, HGamalCipher<S, P>>,
     // the reencryption of the key by the medusa network
-    reencryption: hgamal.MedusaReencryption<S, P>
+    reencryption: hgamal.MedusaReencryption<S, P>,
   ): Promise<hgamal.DecryptionRes> {
     /// first decrypt the encryption key from Medusa
     const r = await hgamal.decryptReencryption(
@@ -156,7 +156,7 @@ export class HGamalSuite<
       secret,
       medusaKey,
       bundle.encryptedKey, // original cipher of the key
-      reencryption // reencryption done by medusa
+      reencryption, // reencryption done by medusa
     );
     if (!r.isOk()) {
       return err(r.error);
@@ -166,12 +166,12 @@ export class HGamalSuite<
     const nonce = bundle.encryptedData.slice(0, secretbox.nonceLength);
     const message = bundle.encryptedData.slice(
       secretbox.nonceLength,
-      bundle.encryptedData.length
+      bundle.encryptedData.length,
     );
 
     const decrypted = secretbox.open(message, nonce, key);
     if (decrypted === null) {
-      return err(new hgamal.EncryptionError("Authenticated decryption failed"));
+      return err(new hgamal.EncryptionError('Authenticated decryption failed'));
     }
     return ok(decrypted);
   }

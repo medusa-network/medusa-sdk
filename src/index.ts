@@ -1,23 +1,23 @@
-import { BigNumber, ethers, utils } from "ethers";
+import { BigNumber, ethers, utils } from 'ethers';
 
-import { init as initBn254 } from "./bn254";
-import { Point, Scalar, Curve, EVMG1Point } from "./algebra";
-import { EncryptionBundle, HGamalSuite, Label } from "./encrypt";
-import { DleqSuite } from "./dleq";
+import { init as initBn254 } from './bn254';
+import { Point, Scalar, Curve, EVMG1Point } from './algebra';
+import { EncryptionBundle, HGamalSuite, Label } from './encrypt';
+import { DleqSuite } from './dleq';
 
 import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
-} from "./hgamal";
+} from './hgamal';
 import {
   /* eslint-disable-next-line camelcase */
   EncryptionOracle__factory,
   /* eslint-disable-next-line camelcase */
   ThresholdNetwork__factory,
-} from "../typechain";
+} from '../typechain';
 
 export { HGamalEVMCipher };
-export { EVMG1Point } from "./algebra";
+export { EVMG1Point } from './algebra';
 
 // The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
@@ -59,7 +59,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   constructor(
     suite: Curve<S, P> & DleqSuite<S, P>,
     signer: ethers.Signer,
-    medusaAddress: string
+    medusaAddress: string,
   ) {
     this.suite = suite;
     this.signer = signer;
@@ -74,15 +74,15 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    */
   static async init(
     medusaAddress: string,
-    signer: ethers.Signer
+    signer: ethers.Signer,
   ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
     if (!signer.provider) {
-      throw new Error("Medusa: Signer must have an attached provider");
+      throw new Error('Medusa: Signer must have an attached provider');
     }
 
     const medusaContract = EncryptionOracle__factory.connect(
       medusaAddress,
-      signer
+      signer,
     );
 
     const suite = await medusaContract.suite();
@@ -106,7 +106,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   static newKeypair<
     S extends Scalar,
     P extends Point<S>,
-    C extends Curve<S, P>
+    C extends Curve<S, P>,
   >(curve: C): Keypair<S, P> {
     const priv = curve.scalar().random();
     const pubkey = curve.point().one().mul(priv);
@@ -132,7 +132,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     if (this.keypair) {
       return this.keypair;
     }
-    const signature = await this.signer.signMessage("Sign in to Medusa");
+    const signature = await this.signer.signMessage('Sign in to Medusa');
     const kp = this.deriveKeypair(signature);
     this.setKeypair(kp);
     return kp;
@@ -175,7 +175,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     }
     const medusaContract = ThresholdNetwork__factory.connect(
       this.medusaAddress,
-      this.signer
+      this.signer,
     );
     const key = await medusaContract.distributedKey();
     this.publicKey = this.decodePublicKey(key);
@@ -199,14 +199,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    */
   async encrypt(
     data: Uint8Array,
-    contractAddress: string
+    contractAddress: string,
   ): Promise<{ encryptedData: Uint8Array; encryptedKey: HGamalEVMCipher }> {
     const medusaPublicKey = await this.fetchPublicKey();
     const hgamalSuite = new HGamalSuite(this.suite);
     const label = Label.from(
       medusaPublicKey,
       contractAddress,
-      await this.signer.getAddress()
+      await this.signer.getAddress(),
     );
     const bundle = (
       await hgamalSuite.encryptToMedusa(data, medusaPublicKey, label)
@@ -226,7 +226,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    */
   async decrypt(
     ciphertext: HGamalEVMCipher,
-    encryptedData: Uint8Array
+    encryptedData: Uint8Array,
   ): Promise<Uint8Array> {
     const hgamalSuite = new HGamalSuite(this.suite);
 
@@ -247,7 +247,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       kp.secret,
       await this.fetchPublicKey(),
       bundle,
-      cipher
+      cipher,
     );
     return decryptionRes._unsafeUnwrap();
   }

@@ -1,5 +1,5 @@
-import { BigNumber } from "ethers";
-import { Result } from "neverthrow";
+import { BigNumber } from 'ethers';
+import { Result } from 'neverthrow';
 
 // taken from https://bobbyhadz.com/blog/typescript-extend-error-class
 export class EncodingError extends Error {
@@ -11,7 +11,7 @@ export class EncodingError extends Error {
   }
 
   getErrorMessage(): string {
-    return "encoding err: " + this.message;
+    return 'encoding err: ' + this.message;
   }
 }
 
@@ -23,7 +23,7 @@ export interface EVMEncoding<T> {
 }
 
 export type ABIEncodedLabels = Array<
-  "uint256" | "address" | "bytes32" | "string"
+  'uint256' | 'address' | 'bytes32' | 'string'
 >;
 export type ABIEncodedValues = Array<BigNumber | string>;
 export type ABIEncoded = [ABIEncodedLabels, ABIEncodedValues];
@@ -33,22 +33,22 @@ export interface ABIEncoder {
 }
 
 export function ABIString(v: string): EVMTypeWrapper {
-  return new EVMTypeWrapper(v, "string");
+  return new EVMTypeWrapper(v, 'string');
 }
 
 export function ABIAddress(v: string): EVMTypeWrapper {
-  return new EVMTypeWrapper(v, "address");
+  return new EVMTypeWrapper(v, 'address');
 }
 
 export function ABIUint256(b: BigNumber): EVMTypeWrapper {
-  return new EVMTypeWrapper(b, "uint256");
+  return new EVMTypeWrapper(b, 'uint256');
 }
 
 export function ABIBytes32(b: BigNumber | string): EVMTypeWrapper {
   if (b instanceof BigNumber) {
-    return new EVMTypeWrapper(b, "bytes32");
+    return new EVMTypeWrapper(b, 'bytes32');
   } else {
-    return new EVMTypeWrapper(BigNumber.from(b), "bytes32");
+    return new EVMTypeWrapper(BigNumber.from(b), 'bytes32');
   }
 }
 

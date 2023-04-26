@@ -1,16 +1,16 @@
-import assert from "assert";
-import { artifacts, ethers } from "hardhat";
-import { Bn254Suite, init } from "../src/bn254";
-import { ShaTranscript } from "../src/transcript";
-import { prove, verify } from "../src/dleq";
+import assert from 'assert';
+import { artifacts, ethers } from 'hardhat';
+import { Bn254Suite, init } from '../src/bn254';
+import { ShaTranscript } from '../src/transcript';
+import { prove, verify } from '../src/dleq';
 
 /* eslint-disable-next-line camelcase */
-import { Playground, Playground__factory } from "../typechain";
-import { ABIString, ABIAddress, ABIBytes32 } from "../src/encoding";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Label } from "../src/encrypt";
+import { Playground, Playground__factory } from '../typechain';
+import { ABIString, ABIAddress, ABIBytes32 } from '../src/encoding';
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { Label } from '../src/encrypt';
 
-describe("dleq proof", () => {
+describe('dleq proof', () => {
   let owner: SignerWithAddress;
   let testContract: Playground;
   let suite: Bn254Suite;
@@ -25,7 +25,7 @@ describe("dleq proof", () => {
     testContract = await new Playground__factory(owner).deploy();
   });
 
-  it("typescript verification", () => {
+  it('typescript verification', () => {
     const secret = suite.scalar().random();
     const rg2 = suite.base2().mul(secret);
     const rg1 = suite.base1().mul(secret);
@@ -41,11 +41,11 @@ describe("dleq proof", () => {
     assert.ok(!verify(suite, new ShaTranscript(), rg1, rg2, proof));
 
     const invalidTranscript = new ShaTranscript();
-    invalidTranscript.append(ABIString("fiat shamir is the weakness"));
+    invalidTranscript.append(ABIString('fiat shamir is the weakness'));
     assert.ok(!verify(suite, invalidTranscript, rg1, rg2, proof));
   });
 
-  it("onchain transcript verification", async () => {
+  it('onchain transcript verification', async () => {
     console.log(await artifacts.getArtifactPaths());
     const labelP = suite.point().random();
     const hashP = suite.point().random();
@@ -53,7 +53,7 @@ describe("dleq proof", () => {
     const evmVersion = await testContract.shathis(
       labelP.toEvm(),
       myAddr,
-      hashP.toEvm()
+      hashP.toEvm(),
     );
     console.log(evmVersion);
     // const label = ethers.utils.soliditySha256(["address", "uint256", "uint256"], [myAddr, evmP.x, evmP.y]);//ethers.utils.toUtf8Bytes(myAddr));
@@ -69,7 +69,7 @@ describe("dleq proof", () => {
     assert.strictEqual(evmVersion, finalSha);
   });
 
-  it("onchain dleq proof verification", async () => {
+  it('onchain dleq proof verification', async () => {
     const secret = suite.scalar().random();
     const rg1 = suite.base1().mul(secret);
     const rg2 = suite.base2().mul(secret);
@@ -80,15 +80,15 @@ describe("dleq proof", () => {
     // verify still locally
     const verifierTranscript = new ShaTranscript().append(label);
     const valid = verify(suite, verifierTranscript, rg1, rg2, proof);
-    assert.ok(valid, "local verification fails");
+    assert.ok(valid, 'local verification fails');
     // verify onchain
     const check = await testContract.verifyDLEQProof(
       rg1.toEvm(),
       rg2.toEvm(),
       proof.toEvm(),
-      label.toEvm()
+      label.toEvm(),
     );
-    assert.ok(check, "smart contract verification fail");
+    assert.ok(check, 'smart contract verification fail');
     /// challenge
     // const challenge = await testContract.verifyDLEQProof(rg1.toEvm(), rg2.toEvm(), proof.toEvm(), label.toEvm());
     // console.log("challenge evm = ", challenge);
