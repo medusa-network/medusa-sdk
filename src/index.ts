@@ -115,7 +115,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     S extends Scalar,
     P extends Point<S>,
     C extends Curve<S, P>,
-    >(curve: C): Keypair<S, P> {
+  >(curve: C): Keypair<S, P> {
     const priv = curve.scalar().random();
     const pubkey = curve.point().one().mul(priv);
     const kp: Keypair<S, P> = {

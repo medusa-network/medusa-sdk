@@ -74,7 +74,7 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
 export interface EncryptionBundle<
   KeyCipherEVM,
   KeyCipher extends EVMEncoding<KeyCipherEVM>,
-  > {
+> {
   /// data encrypted symmetrically, can be stored anywhere like IPFS
   encryptedData: Uint8Array;
   /// key used to encrypt data, encrypted using Medusa, must be submitted to Medusa
@@ -85,7 +85,7 @@ export class HGamalSuite<
   S extends Scalar,
   P extends Point<S>,
   Suite extends DleqSuite<S, P>,
-  > {
+> {
   suite: Suite;
 
   constructor(suite: Suite) {
