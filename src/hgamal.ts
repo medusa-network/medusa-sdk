@@ -18,6 +18,10 @@ export interface EVMCipher {
   dleq: dleq.EVMProof;
 }
 
+export interface EVMReencryptedCipher {
+  random: EVMG1Point;
+}
+
 export class Ciphertext<S extends Scalar, P extends Point<S>>
   implements EVMEncoding<EVMCipher>
 {
@@ -68,13 +72,9 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   }
 }
 
-export interface EVMMedusaReencryption {
-  random: EVMG1Point;
-}
-
 /// Ciphertext that Medusa emits to the smart contract
 export class MedusaReencryption<S extends Scalar, P extends Point<S>>
-  implements EVMEncoding<EVMMedusaReencryption>
+  implements EVMEncoding<EVMReencryptedCipher>
 {
   random: P;
 
@@ -88,11 +88,11 @@ export class MedusaReencryption<S extends Scalar, P extends Point<S>>
     return new MedusaReencryption(c.point());
   }
 
-  toEvm(): EVMMedusaReencryption {
+  toEvm(): EVMReencryptedCipher {
     throw new Error('This method should never be called?');
   }
 
-  fromEvm(t: EVMMedusaReencryption): EncodingRes<this> {
+  fromEvm(t: EVMReencryptedCipher): EncodingRes<this> {
     return this.random.fromEvm(t.random).andThen((v) => {
       this.random = v;
       return ok(this);
@@ -146,16 +146,18 @@ export async function encrypt<S extends SecretKey, P extends PublicKey<S>>(
   const cipher = new Ciphertext(rg, ciphertext, rg2, proof);
   return ok(cipher);
 }
+
 export type DecryptionRes = Result<Uint8Array, EncryptionError>;
+
 export async function decryptReencryption<
   S extends SecretKey,
   P extends PublicKey<S>,
->(
-  suite: dleq.DleqSuite<S, P>,
-  priv: S,
-  proxyPub: P,
-  original: Ciphertext<S, P>,
-  reencrypted: MedusaReencryption<S, P>,
+  >(
+    suite: dleq.DleqSuite<S, P>,
+    priv: S,
+    proxyPub: P,
+    original: Ciphertext<S, P>,
+    reencrypted: MedusaReencryption<S, P>,
 ): Promise<DecryptionRes> {
   // XXX not really needed since smart contract does it
   // TODO place this when we read all submitted ciperthext,

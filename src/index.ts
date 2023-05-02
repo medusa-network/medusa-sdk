@@ -8,6 +8,8 @@ import { DleqSuite } from './dleq';
 import {
   Ciphertext as HGamalCipher,
   EVMCipher as HGamalEVMCipher,
+  MedusaReencryption as HGamalReencryptedCipher,
+  EVMReencryptedCipher as HGamalEVMReencryptedCipher,
 } from './hgamal';
 import {
   /* eslint-disable-next-line camelcase */
@@ -16,8 +18,10 @@ import {
   ThresholdNetwork__factory,
 } from '../typechain';
 
-export { HGamalEVMCipher };
+export { HGamalEVMCipher, HGamalEVMReencryptedCipher };
 export { EVMG1Point } from './algebra';
+import { NETWORK_CONFIG, NetworkEnvironment } from './config';
+import { GAS_UNIT_BUFFER, MINIMUM_BASE_FEE } from './constants';
 
 // The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
@@ -51,6 +55,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   readonly medusaAddress: string;
   // The public key of the medusa oracle contract
   private publicKey: P | undefined;
+  // The network environment of Medusa
+  private network: NetworkEnvironment;
 
   /**
    * Setup Medusa instance
@@ -60,10 +66,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     suite: Curve<S, P> & DleqSuite<S, P>,
     signer: ethers.Signer,
     medusaAddress: string,
+    network: NetworkEnvironment = 'testnet',
   ) {
     this.suite = suite;
     this.signer = signer;
     this.medusaAddress = medusaAddress;
+    this.network = network;
   }
 
   /**
@@ -107,7 +115,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     S extends Scalar,
     P extends Point<S>,
     C extends Curve<S, P>,
-  >(curve: C): Keypair<S, P> {
+    >(curve: C): Keypair<S, P> {
     const priv = curve.scalar().random();
     const pubkey = curve.point().one().mul(priv);
     const kp: Keypair<S, P> = {
@@ -221,11 +229,13 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Decrypt a message that has been reencrypted for a user
    * @param {HGamalEVMCipher} ciphertext of encrypted key to decrypt encryptedContents
-   * @param {Uint8Array} encryptedContents to decrypt
+   * @param {HGamalEVMReencryptedCipher} reencryptedCipher of encrypted key to decrypt encryptedContents
+   * @param {Uint8Array} encryptedData to decrypt
    * @returns {Promise<Uint8Array>} The decrypted data
    */
   async decrypt(
     ciphertext: HGamalEVMCipher,
+    reencryptedCipher: HGamalEVMReencryptedCipher,
     encryptedData: Uint8Array,
   ): Promise<Uint8Array> {
     const hgamalSuite = new HGamalSuite(this.suite);
@@ -233,6 +243,9 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     // Convert the ciphertext to a format that the Medusa SDK can use
     const cipher = HGamalCipher.default(this.suite)
       .fromEvm(ciphertext)
+      ._unsafeUnwrap();
+    const reencryption = HGamalReencryptedCipher.default(this.suite)
+      .fromEvm(reencryptedCipher)
       ._unsafeUnwrap();
 
     // Create bundle with encrypted data and extraneous cipher (not used)
@@ -247,8 +260,42 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       kp.secret,
       await this.fetchPublicKey(),
       bundle,
-      cipher,
+      reencryption,
     );
     return decryptionRes._unsafeUnwrap();
+  }
+
+  /**
+   * Estimates the callback gas for a given contract address.
+   *
+   * @async
+   * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
+   * @returns {Promise<BigNumber>} A promise that resolves to the estimated callback gas as a BigNumber.
+   */
+  async estimateCallbackGas(contractAddress: string): Promise<BigNumber> {
+    const oracle = EncryptionOracle__factory.connect(
+      this.medusaAddress,
+      this.signer.provider!,
+    );
+    const gasUnits = await oracle.estimateGas.estimateDeliverReencryption(
+      BigNumber.from(0),
+      {
+        random: { x: BigNumber.from(1), y: BigNumber.from(1) },
+      },
+      contractAddress,
+      { from: NETWORK_CONFIG[this.network].relayerAddr },
+    );
+
+    const feeData = await this.signer.getFeeData();
+    let gasPrice = feeData.maxFeePerGas!;
+    // If the base fee < 1000 wei, we are probably in localhost so add a minimum base fee to correct this.
+    if (feeData.lastBaseFeePerGas?.lt(BigNumber.from(1000))) {
+      gasPrice = gasPrice.add(MINIMUM_BASE_FEE);
+    }
+
+    // Add 10k gas units as a heuristic buffer
+    // The estimation on the frontend is 10k less vs. on the relayer node
+    // When testing locally with anvil
+    return gasUnits.add(GAS_UNIT_BUFFER).mul(gasPrice);
   }
 }

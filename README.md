@@ -59,11 +59,11 @@ const plaintext = new TextDecoder().decode(decryptedBytes) // To decode bytes to
 
 # Development
 ```bash
-yarn build:bindings
+pnpm build:bindings
 
-yarn test
+pnpm test
 
-yarn lint
+pnpm lint
 
-yarn build
+pnpm build
 ```
