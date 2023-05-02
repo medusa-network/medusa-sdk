@@ -104,8 +104,7 @@ export class Fr implements Atom<Fr>, Scalar, EVMEncoding<BigNumber>, ABIEncoder 
 }
 
 export class G1
-  implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes
-{
+  implements Point<Fr>, Atom<Fr>, EVMEncoding<EVMG1Point>, ABIEncoder, ToBytes {
   p: Uint8Array;
 
   constructor() {

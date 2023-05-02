@@ -16,8 +16,8 @@ export interface Atom<RHS> {
 
 export interface Scalar
   extends Atom<Scalar>,
-    EVMEncoding<BigNumber>,
-    ABIEncoder {
+  EVMEncoding<BigNumber>,
+  ABIEncoder {
   inverse(): this;
 }
 
@@ -28,8 +28,8 @@ export interface EVMG1Point {
 
 export interface Point<S extends Scalar>
   extends Atom<S>,
-    EVMEncoding<EVMG1Point>,
-    ABIEncoder {
+  EVMEncoding<EVMG1Point>,
+  ABIEncoder {
   // setHashOf(m: string): this;
   // fromXY(xbuff: Uint8Array, ybuff: Uint8Array): EncodingRes<this>;
 }
