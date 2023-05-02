@@ -111,7 +111,7 @@ export class EncryptionError extends Error {
   }
 
   getErrorMessage(): string {
-    return 'encryption err: ' + this.message;
+    return `encryption err: ${this.message}`;
   }
 }
 
@@ -152,12 +152,12 @@ export type DecryptionRes = Result<Uint8Array, EncryptionError>;
 export async function decryptReencryption<
   S extends SecretKey,
   P extends PublicKey<S>,
-  >(
-    suite: dleq.DleqSuite<S, P>,
-    priv: S,
-    proxyPub: P,
-    original: Ciphertext<S, P>,
-    reencrypted: MedusaReencryption<S, P>,
+>(
+  suite: dleq.DleqSuite<S, P>,
+  priv: S,
+  proxyPub: P,
+  original: Ciphertext<S, P>,
+  reencrypted: MedusaReencryption<S, P>,
 ): Promise<DecryptionRes> {
   // XXX not really needed since smart contract does it
   // TODO place this when we read all submitted ciperthext,

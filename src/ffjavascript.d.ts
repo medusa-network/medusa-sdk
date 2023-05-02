@@ -1,6 +1,6 @@
 // Type definitions for the ffjavascript library. Types are not complete and primarily match our use of the library
-declare module "ffjavascript" {
-  async function buildBn128(): Promise<BN254>;
+declare module 'ffjavascript' {
+  function buildBn128(): Promise<BN254>;
 
   class WasmCurve {
     zero: Uint8Array;
@@ -50,7 +50,7 @@ declare module "ffjavascript" {
   }
 
   class ChaCha {
-    constructor(seed: number[]): this;
+    constructor(_seed: number[]);
   }
 
   export { buildBn128, BN254, WasmField1, WasmCurve, ChaCha };

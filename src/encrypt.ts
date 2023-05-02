@@ -32,12 +32,12 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
   ) {
     if (!ethers.utils.isAddress(platformAddress)) {
       throw new Error(
-        'invalid platform address specified for label: ' + platformAddress,
+        `invalid platform address specified for label: ${platformAddress}`,
       );
     }
     if (!ethers.utils.isAddress(encryptor)) {
       throw new Error(
-        'invalid encryptor address specified for label: ' + encryptor,
+        `invalid encryptor address specified for label: ${encryptor}`,
       );
     }
     this.label = new ShaTranscript()
@@ -54,7 +54,7 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     return BigNumber.from(this.label);
   }
 
-  fromEvm(t: BigNumber): EncodingRes<this> {
+  fromEvm(_t: BigNumber): EncodingRes<this> {
     throw new Error('Method not implemented.');
   }
 

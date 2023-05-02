@@ -11,7 +11,7 @@ export class EncodingError extends Error {
   }
 
   getErrorMessage(): string {
-    return 'encoding err: ' + this.message;
+    return `encoding err: ${this.message}`;
   }
 }
 

@@ -36,7 +36,7 @@ export interface Keypair<S extends SecretKey, P extends PublicKey<S>> {
 
 // The available encryption suites supported by Medusa
 export enum SuiteType {
-  BN254_KEYG1_HGAMAL,
+  BN254_KEYG1_HGAMAL = 0,
 }
 
 /**
@@ -115,7 +115,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     S extends Scalar,
     P extends Point<S>,
     C extends Curve<S, P>,
-    >(curve: C): Keypair<S, P> {
+  >(curve: C): Keypair<S, P> {
     const priv = curve.scalar().random();
     const pubkey = curve.point().one().mul(priv);
     const kp: Keypair<S, P> = {
@@ -167,7 +167,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
           secret,
           pubkey,
         };
-      } catch (e) {
+      } catch (_e) {
         n++;
       }
     }
