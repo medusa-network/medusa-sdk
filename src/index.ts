@@ -21,6 +21,7 @@ import {
 export { HGamalEVMCipher, HGamalEVMReencryptedCipher };
 export { EVMG1Point } from './algebra';
 import { NETWORK_CONFIG, NetworkEnvironment } from './config';
+import { GAS_UNIT_BUFFER, MINIMUM_BASE_FEE } from './constants';
 
 // The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
@@ -287,15 +288,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
 
     const feeData = await this.signer.getFeeData();
     let gasPrice = feeData.maxFeePerGas!;
-    // If the base fee < 1000 wei, we are probably in localhost so multiply gas price by 2 to account for extremely low base fee
-    // We are effectively multiplying the priorityFee by 2 since maxFeePerGas = priorityFee + lastBaseFeePerGas
+    // If the base fee < 1000 wei, we are probably in localhost so add a minimum base fee to correct this.
     if (feeData.lastBaseFeePerGas?.lt(BigNumber.from(1000))) {
-      gasPrice = gasPrice.mul(2);
+      gasPrice = gasPrice.add(MINIMUM_BASE_FEE);
     }
 
     // Add 10k gas units as a heuristic buffer
     // The estimation on the frontend is 10k less vs. on the relayer node
     // When testing locally with anvil
-    return gasUnits.add(10000).mul(gasPrice);
+    return gasUnits.add(GAS_UNIT_BUFFER).mul(gasPrice);
   }
 }
