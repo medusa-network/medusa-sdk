@@ -30,6 +30,6 @@ jobs:
           version: nightly
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm publish --access --no-git-checks public
+      - run: pnpm publish --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
