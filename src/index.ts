@@ -20,7 +20,7 @@ import {
 
 export { HGamalEVMCipher, HGamalEVMReencryptedCipher };
 export { EVMG1Point } from './algebra';
-import { RELAYER_ADDR } from './consts';
+import { NETWORK_CONFIG, NetworkEnvironment } from './config';
 
 // The public key is a point of scalars
 export type PublicKey<S extends Scalar> = Point<S>;
@@ -54,6 +54,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   readonly medusaAddress: string;
   // The public key of the medusa oracle contract
   private publicKey: P | undefined;
+  // The network environment of Medusa
+  private network: NetworkEnvironment;
 
   /**
    * Setup Medusa instance
@@ -63,10 +65,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
     suite: Curve<S, P> & DleqSuite<S, P>,
     signer: ethers.Signer,
     medusaAddress: string,
+    network: NetworkEnvironment = 'testnet',
   ) {
     this.suite = suite;
     this.signer = signer;
     this.medusaAddress = medusaAddress;
+    this.network = network;
   }
 
   /**
@@ -278,7 +282,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
         random: { x: BigNumber.from(1), y: BigNumber.from(1) },
       },
       contractAddress,
-      { from: RELAYER_ADDR },
+      { from: NETWORK_CONFIG[this.network].relayerAddr },
     );
 
     const feeData = await this.signer.getFeeData();
