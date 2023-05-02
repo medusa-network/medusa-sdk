@@ -61,6 +61,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   /**
    * Setup Medusa instance
    * @param {Curve<S, P> & DleqSuite<S, P>} suite to use with encryption / decryption
+   * @param {ethers.Signer} signer The signer with attached provider used to interact with Medusa
+   * @param {string} medusaAddress The address of the medusa oracle being used
    */
   constructor(
     suite: Curve<S, P> & DleqSuite<S, P>,
@@ -78,11 +80,13 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * Initialize the finite field curve for the encryption suite and return a corresponding Medusa instance
    * @param {string} medusaAddress The address of the medusa oracle being used
    * @param {ethers.Signer} signer The signer with attached provider used to interact with Medusa
+   * @param {NetworkEnvironment} network The network environment of Medusa
    * @returns {Promise<Medusa<S, P>>} Medusa instance
    */
   static async init(
     medusaAddress: string,
     signer: ethers.Signer,
+    network: NetworkEnvironment = 'testnet',
   ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
     if (!signer.provider) {
       throw new Error('Medusa: Signer must have an attached provider');
@@ -97,7 +101,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
 
     switch (suite as SuiteType) {
       case SuiteType.BN254_KEYG1_HGAMAL: {
-        const medu = new Medusa(await initBn254(), signer, medusaAddress);
+        const medu = new Medusa(
+          await initBn254(),
+          signer,
+          medusaAddress,
+          network,
+        );
         await medu.fetchPublicKey();
         return medu;
       }
