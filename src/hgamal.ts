@@ -111,7 +111,7 @@ export class EncryptionError extends Error {
   }
 
   getErrorMessage(): string {
-    return 'encryption err: ' + this.message;
+    return `encryption err: ${this.message}`;
   }
 }
 
