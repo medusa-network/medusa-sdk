@@ -35,6 +35,8 @@ describe('medusa encryption', () => {
     await testContract.deployOracle(
       medusa.pubkey.toEvm(),
       NETWORK_CONFIG['localhost'].relayerAddr,
+      0,
+      0,
     );
 
     const label = Label.from(
