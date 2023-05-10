@@ -39,6 +39,12 @@ export enum SuiteType {
   BN254_KEYG1_HGAMAL = 0,
 }
 
+interface MedusaArgs {
+  signer: ethers.Signer;
+  medusaAddress: string;
+  contractAddress: string;
+  network: NetworkEnvironment;
+}
 /**
  * Core class to handle encryption suites, curve initialization, generation of keys and encryption / decryption
  */
@@ -53,6 +59,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   readonly signer: ethers.Signer;
   // The address of the medusa oracle contract
   readonly medusaAddress: string;
+  // The address of the application smart contract
+  readonly contractAddress: string;
   // The public key of the medusa oracle contract
   private publicKey: P | undefined;
   // The network environment of Medusa
@@ -64,15 +72,19 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * @param {ethers.Signer} signer The signer with attached provider used to interact with Medusa
    * @param {string} medusaAddress The address of the medusa oracle being used
    */
-  constructor(
-    suite: Curve<S, P> & DleqSuite<S, P>,
-    signer: ethers.Signer,
-    medusaAddress: string,
-    network: NetworkEnvironment = 'testnet',
-  ) {
+  constructor({
+    suite,
+    signer,
+    medusaAddress,
+    contractAddress,
+    network = 'testnet',
+  }: MedusaArgs & {
+    suite: Curve<S, P> & DleqSuite<S, P>;
+  }) {
     this.suite = suite;
     this.signer = signer;
     this.medusaAddress = medusaAddress;
+    this.contractAddress = contractAddress;
     this.network = network;
   }
 
@@ -83,11 +95,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * @param {NetworkEnvironment} network The network environment of Medusa
    * @returns {Promise<Medusa<S, P>>} Medusa instance
    */
-  static async init(
-    medusaAddress: string,
-    signer: ethers.Signer,
-    network: NetworkEnvironment = 'testnet',
-  ): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
+  static async init({
+    signer,
+    medusaAddress,
+    contractAddress,
+    network = 'testnet',
+  }: MedusaArgs): Promise<Medusa<SecretKey, PublicKey<SecretKey>>> {
     if (!signer.provider) {
       throw new Error('Medusa: Signer must have an attached provider');
     }
@@ -101,12 +114,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
 
     switch (suite as SuiteType) {
       case SuiteType.BN254_KEYG1_HGAMAL: {
-        const medu = new Medusa(
-          await initBn254(),
+        const suite = await initBn254();
+        const medu = new Medusa({
+          suite,
           signer,
           medusaAddress,
+          contractAddress,
           network,
-        );
+        });
         await medu.fetchPublicKey();
         return medu;
       }
@@ -216,13 +231,12 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    */
   async encrypt(
     data: Uint8Array,
-    contractAddress: string,
   ): Promise<{ encryptedData: Uint8Array; encryptedKey: HGamalEVMCipher }> {
     const medusaPublicKey = await this.fetchPublicKey();
     const hgamalSuite = new HGamalSuite(this.suite);
     const label = Label.from(
       medusaPublicKey,
-      contractAddress,
+      this.contractAddress,
       await this.signer.getAddress(),
     );
     const bundle = (
@@ -293,15 +307,14 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * Includes the oracle.reencryptionFee() and the callback gas estimate.
    *
    * @async
-   * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
    * @returns {Promise<BigNumber>} A promise that resolves to the total fee as a BigNumber.
    */
-  async reencryptionFee(contractAddress: string): Promise<BigNumber> {
+  async reencryptionFee(): Promise<BigNumber> {
     const oracle = EncryptionOracle__factory.connect(
       this.medusaAddress,
       this.signer.provider!,
     );
-    return (await this.estimateCallbackGas(contractAddress)).add(
+    return (await this.estimateCallbackGas()).add(
       await oracle.reencryptionFee(),
     );
   }
@@ -310,12 +323,9 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * Estimates the callback gas for a given contract address.
    *
    * @async
-   * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
    * @returns {Promise<BigNumber>} A promise that resolves to the estimated callback gas as a BigNumber.
    */
-  private async estimateCallbackGas(
-    contractAddress: string,
-  ): Promise<BigNumber> {
+  private async estimateCallbackGas(): Promise<BigNumber> {
     const oracle = EncryptionOracle__factory.connect(
       this.medusaAddress,
       this.signer.provider!,
@@ -325,7 +335,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       {
         random: { x: BigNumber.from(1), y: BigNumber.from(1) },
       },
-      contractAddress,
+      this.contractAddress,
       { from: NETWORK_CONFIG[this.network].relayerAddr },
     );
 
