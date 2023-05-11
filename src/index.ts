@@ -275,13 +275,49 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
+   * The total amount that must be paid for a call to oracle.submitCiphertext().
+   *
+   * @async
+   * @returns {Promise<BigNumber>} A promise that resolves to the submission fee as a BigNumber.
+   */
+  async submissionFee(): Promise<BigNumber> {
+    const oracle = EncryptionOracle__factory.connect(
+      this.medusaAddress,
+      this.signer.provider!,
+    );
+    return await oracle.submissionFee();
+  }
+
+  /**
+   * The total amount that must be paid for a call to oracle.requestReencryption().
+   * Includes the oracle.reencryptionFee() and the callback gas estimate.
+   *
+   * @async
+   * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
+   * @returns {Promise<BigNumber>} A promise that resolves to the total fee as a BigNumber.
+   */
+  async reencryptionFee(contractAddress: string): Promise<BigNumber> {
+    const oracle = EncryptionOracle__factory.connect(
+      this.medusaAddress,
+      this.signer.provider!,
+    );
+    const reencryptionFee = await oracle.reencryptionFee();
+    return (
+      await this.estimateCallbackGas(contractAddress, reencryptionFee)
+    ).add(reencryptionFee);
+  }
+
+  /**
    * Estimates the callback gas for a given contract address.
    *
    * @async
    * @param {string} contractAddress - The contract address of the application to estimate the callback gas for.
    * @returns {Promise<BigNumber>} A promise that resolves to the estimated callback gas as a BigNumber.
    */
-  async estimateCallbackGas(contractAddress: string): Promise<BigNumber> {
+  private async estimateCallbackGas(
+    contractAddress: string,
+    reencryptionFee: BigNumber,
+  ): Promise<BigNumber> {
     const oracle = EncryptionOracle__factory.connect(
       this.medusaAddress,
       this.signer.provider!,
@@ -292,7 +328,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
         random: { x: BigNumber.from(1), y: BigNumber.from(1) },
       },
       contractAddress,
-      { from: NETWORK_CONFIG[this.network].relayerAddr },
+      {
+        from: NETWORK_CONFIG[this.network].relayerAddr,
+        value: reencryptionFee,
+      },
     );
 
     const feeData = await this.signer.getFeeData();
