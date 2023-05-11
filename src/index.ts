@@ -301,9 +301,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       this.medusaAddress,
       this.signer.provider!,
     );
-    return (await this.estimateCallbackGas(contractAddress)).add(
-      await oracle.reencryptionFee(),
-    );
+    const reencryptionFee = await oracle.reencryptionFee();
+    return (
+      await this.estimateCallbackGas(contractAddress, reencryptionFee)
+    ).add(reencryptionFee);
   }
 
   /**
@@ -315,6 +316,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    */
   private async estimateCallbackGas(
     contractAddress: string,
+    reencryptionFee: BigNumber,
   ): Promise<BigNumber> {
     const oracle = EncryptionOracle__factory.connect(
       this.medusaAddress,
@@ -326,7 +328,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
         random: { x: BigNumber.from(1), y: BigNumber.from(1) },
       },
       contractAddress,
-      { from: NETWORK_CONFIG[this.network].relayerAddr },
+      {
+        from: NETWORK_CONFIG[this.network].relayerAddr,
+        value: reencryptionFee,
+      },
     );
 
     const feeData = await this.signer.getFeeData();
