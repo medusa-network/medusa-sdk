@@ -7,7 +7,7 @@ import { EncodingRes, EVMEncoding } from './encoding';
 import { bnToArray } from './utils';
 import { EVMTranscript } from './transcript';
 import * as dleq from './dleq';
-import { BigNumber } from 'ethers';
+import { BigNumber } from './ethers-compat';
 
 export interface EVMCipher {
   random: EVMG1Point;
@@ -51,7 +51,7 @@ export class Ciphertext<S extends Scalar, P extends Point<S>>
   toEvm(): EVMCipher {
     return {
       random: this.random.toEvm(),
-      cipher: BigNumber.from(this.cipher),
+      cipher: BigNumber.from(Buffer.from(this.cipher).toString('hex')),
       random2: this.random2.toEvm(),
       dleq: this.dleq.toEvm(),
     };

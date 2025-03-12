@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber } from './ethers-compat';
 import { EncodingRes, EVMEncoding, ABIEncoder } from './encoding';
 
 export interface Atom<RHS> {

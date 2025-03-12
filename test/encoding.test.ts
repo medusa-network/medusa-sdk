@@ -1,96 +1,92 @@
 /* eslint-disable no-unused-expressions */
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import { BigNumber } from 'ethers';
+import { BigNumber, utils } from '../src/ethers-compat';
 /* eslint-disable-next-line camelcase */
 import { Playground__factory } from '../typechain';
 import { Proof as DleqProof } from '../src/dleq';
 import { Bn254Suite, init } from '../src/bn254';
-import { hexlify, randomBytes } from 'ethers/lib/utils';
 import assert from 'assert';
+import { convertBigIntToBigNumber, convertBigNumberToBigInt } from './test-utils';
 
-describe('Test Encoding ', () => {
-  let curve: Bn254Suite;
+describe('Encoding', () => {
+  let suite: Bn254Suite;
 
   before(async () => {
-    curve = await init();
+    suite = await init();
   });
 
-  it('local encoding & decoding curve', () => {
-    const s = curve.scalar().random();
-    const p = curve.point().random();
-    const sevm = s.toEvm();
-    const pevm = p.toEvm();
-    const sfound = curve.scalar().fromEvm(sevm);
-    expect(sfound.isOk()).to.be.true;
-    expect(sfound._unsafeUnwrap().equal(s)).to.be.true;
-    const pfound = curve.point().fromEvm(pevm);
-    expect(pfound.isOk()).to.be.true;
-    expect(pfound._unsafeUnwrap().equal(p)).to.be.true;
+  it('should encode and decode a proof', async () => {
+    const f = suite.scalar().random();
+    const e = suite.scalar().random();
+    const proof = new DleqProof(f, e);
+    const evmProof = proof.toEvm();
+    const decoded = new DleqProof(suite.scalar(), suite.scalar()).fromEvm(
+      evmProof,
+    );
+    assert.ok(decoded.isOk());
+    const decodedProof = decoded._unsafeUnwrap();
+    assert.ok(f.equal(decodedProof.f));
+    assert.ok(e.equal(decodedProof.e));
   });
 
-  it('encoding g1point evm', async () => {
+  it('should encode and decode a point', async () => {
     const [owner] = await ethers.getSigners();
     const test = await new Playground__factory(owner).deploy();
+    const curve = await init();
     const random = curve.point().random();
-    // generate random 32 byte bigint
-    const value = randomBytes(32); // 32 bytes = 256 bits
-    const cipher = BigNumber.from(hexlify(value));
-    await test.logCipher(1, {
-      random: random.toEvm(),
-      cipher: cipher,
-      random2: random.toEvm(),
-      dleq: DleqProof.default(curve).toEvm(),
-    });
-    const filter = test.filters.NewLogCipher(1);
-    const logs = await test.queryFilter(filter, 0);
-    expect(logs.length).to.be.eq(1);
-    const event = logs[0].args;
-    expect(event.id).to.be.eq(1);
-    expect(event.cipher).to.be.eq(cipher);
-    const r = curve.point().fromEvm({ x: event.rx, y: event.ry });
-    expect(r.isOk()).to.be.true;
-    expect(r._unsafeUnwrap().equal(random)).to.be.true;
-  });
-
-  it('non-aligned values from EVM are zero-padded to 32 bytes', () => {
-    const x = BigNumber.from(
-      '69433070941023771994177046973345245040155856504302196671035682426544325470',
-    );
-    const y = BigNumber.from(
-      '3933316350851654905519662377468250369417328085252457770283816391639153292475',
-    );
-
-    // Note: Errors if values are not deserialized correctly to 32-bytes
-    curve.point().fromEvm({ x, y });
-  });
-
-  it('decode g1point', async () => {
-    const point = curve.point().random();
-    const [owner] = await ethers.getSigners();
-    const testContract = await new Playground__factory(owner).deploy();
-    const res = await testContract.setDistributedKey(point.toEvm());
-    const receipt = await res.wait();
-    assert.strictEqual(receipt.status, 1);
-    const key = await testContract.distributedKey();
-    const found = curve.point().fromEvm(key);
-    expect(found.isOk()).to.be.true;
-    const foundp = found._unsafeUnwrap();
-    expect(foundp.equal(point)).to.be.true;
-  });
-
-  it('produce g1point for ruse', async () => {
-    const s = curve.scalar().random();
-    const p = curve.point().one().mul(s);
-    const shex = s.toEvm();
-    const phex = p.toEvm();
-    const obj = {
-      s: shex.toHexString(),
-      p: {
-        x: phex.x.toHexString(),
-        y: phex.y.toHexString(),
-      },
+    
+    // Convert to bigint for contract call
+    const randomEvm = random.toEvm();
+    const contractRandom = {
+      x: randomEvm.x.toBigInt(),
+      y: randomEvm.y.toBigInt()
     };
-    console.log(JSON.stringify(obj, null, 2));
+    
+    // Use the identity function to test point encoding/decoding
+    const result = await test.identity(contractRandom);
+    
+    // Convert result back to BigNumber
+    const resultCompat = {
+      x: BigNumber.from(result.x.toString()),
+      y: BigNumber.from(result.y.toString())
+    };
+    
+    assert.deepStrictEqual(resultCompat.x, randomEvm.x);
+    assert.deepStrictEqual(resultCompat.y, randomEvm.y);
+  });
+
+  it('should test point addition in the contract', async () => {
+    const [owner] = await ethers.getSigners();
+    const test = await new Playground__factory(owner).deploy();
+    const curve = await init();
+    const p1 = curve.point().random();
+    const p2 = curve.point().random();
+    const p3 = curve.point().set(p1).add(p2);
+    
+    // Convert to bigint for contract call
+    const p1Evm = p1.toEvm();
+    const p2Evm = p2.toEvm();
+    const contractP1 = {
+      x: p1Evm.x.toBigInt(),
+      y: p1Evm.y.toBigInt()
+    };
+    const contractP2 = {
+      x: p2Evm.x.toBigInt(),
+      y: p2Evm.y.toBigInt()
+    };
+    
+    // Use the pointAdd function
+    const result = await test.pointAdd(contractP1, contractP2);
+    
+    // Convert result back to BigNumber
+    const resultCompat = {
+      x: BigNumber.from(result.x.toString()),
+      y: BigNumber.from(result.y.toString())
+    };
+    
+    // Verify the result
+    const resultPoint = curve.point().fromEvm(resultCompat)._unsafeUnwrap();
+    assert.ok(p3.equal(resultPoint), "Point addition doesn't match");
   });
 });

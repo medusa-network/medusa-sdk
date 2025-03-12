@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber } from './ethers-compat';
 import { Result } from 'neverthrow';
 
 // taken from https://bobbyhadz.com/blog/typescript-extend-error-class

@@ -3,7 +3,7 @@ import { Medusa } from '../src';
 import { init, G1, Bn254Suite } from '../src/bn254';
 import * as dleq from '../src/dleq';
 import assert from 'assert';
-import { hexlify, arrayify } from 'ethers/lib/utils';
+import { utils } from '../src/ethers-compat';
 import { arrayToBn, bnToArray } from '../src/utils';
 import { ShaTranscript } from '../src/transcript';
 import { reencrypt } from './utils';
@@ -28,8 +28,8 @@ describe('hgamal', () => {
     // so the fromEVM calls already reverse the array. Therefore we need to give it
     // in a reversed form first, (the hex from Rust comes in littleendian), so we need
     // to give it in big endian form.
-    const xa = arrayToBn(arrayify(x), true);
-    const ya = arrayToBn(arrayify(y), true);
+    const xa = arrayToBn(utils.arrayify(x), true);
+    const ya = arrayToBn(utils.arrayify(y), true);
     const p = suite.point().fromEvm({ x: xa, y: ya });
     assert(p.isOk());
     return p._unsafeUnwrap();
@@ -65,7 +65,7 @@ describe('hgamal', () => {
     };
     const point = pointFromXY(shared.x, shared.y);
     const evm = point.toEvm();
-    const xhex = hexlify(bnToArray(evm.x, true));
+    const xhex = utils.hexlify(bnToArray(evm.x, true));
     assert.strictEqual(xhex, shared.x);
   });
 
@@ -128,14 +128,14 @@ describe('hgamal', () => {
     const proxyPub = pointFromXY(data.proxypub.x, data.proxypub.y);
     const proxyPriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.proxypriv), true))
+      .fromEvm(arrayToBn(utils.arrayify(data.proxypriv), true))
       ._unsafeUnwrap();
     const expProxyPub = suite.point().one().mul(proxyPriv);
     assert.ok(compareEqual(expProxyPub, proxyPub));
 
     const bobpriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.bobpriv), true))
+      .fromEvm(arrayToBn(utils.arrayify(data.bobpriv), true))
       ._unsafeUnwrap();
     const bobpub = suite.point().one().mul(suite.scalar().set(bobpriv));
     const bobpubFound = pointFromXY(data.bobpub.x, data.bobpub.y);
@@ -145,7 +145,7 @@ describe('hgamal', () => {
     const shared = pointFromXY(data.shared.x, data.shared.y);
     const tmpPriv = suite
       .scalar()
-      .fromEvm(arrayToBn(arrayify(data.random_priv), true))
+      .fromEvm(arrayToBn(utils.arrayify(data.random_priv), true))
       ._unsafeUnwrap();
     const expShared = suite.point().set(proxyPub).mul(tmpPriv);
     assert.ok(compareEqual(shared, expShared));
@@ -154,14 +154,14 @@ describe('hgamal', () => {
     // for the encryption - note during the reencryption it doesn't change
     //
     const hkdfComputed = await hgamal.sharedKey(shared);
-    const hkdfFound = arrayify(data.hkdf);
-    assert.strictEqual(hexlify(hkdfComputed), hexlify(hkdfFound));
+    const hkdfFound = utils.arrayify(data.hkdf);
+    assert.strictEqual(utils.hexlify(hkdfComputed), utils.hexlify(hkdfFound));
 
     // Then check if reencrypting yourself gives expected result
     const random = pointFromXY(data.cipher.random.x, data.cipher.random.y);
     const cipher = new hgamal.Ciphertext(
       random,
-      arrayify(data.cipher.cipher),
+      utils.arrayify(data.cipher.cipher),
       /// give random dleq elements because it's not what we are interested in here
       suite.point(),
       dleq.Proof.default(suite),
@@ -195,18 +195,18 @@ describe('hgamal', () => {
     // Then check again the hkdf and then decoding
 
     // First check what is given as input to the hash function
-    // const xsharedFound = arrayify(data.xshared);
+    // const xsharedFound = utils.arrayify(data.xshared);
     // const xsharedComputed = bnToArray(shared.toEvm().x);
-    // assert.strictEqual(hexlify(xsharedComputed), hexlify(xsharedFound));
+    // assert.strictEqual(utils.hexlify(xsharedComputed), utils.hexlify(xsharedFound));
 
     assert.ok(compareEqual(fnegComputed, shared));
     assert.strictEqual(data.fhashed, data.hkdf);
     const fhashedComputed = await hgamal.sharedKey(fnegComputed);
-    const fhashedFound = arrayify(data.fhashed);
+    const fhashedFound = utils.arrayify(data.fhashed);
     // const fhashedComputed = await hgamal.sharedKey(shared);
-    // const fhashedFound = arrayify(data.hkdf);
+    // const fhashedFound = utils.arrayify(data.hkdf);
 
-    assert.strictEqual(hexlify(fhashedComputed), hexlify(fhashedFound));
+    assert.strictEqual(utils.hexlify(fhashedComputed), utils.hexlify(fhashedFound));
 
     // Then tries to decrypt for yourself
     const m = await hgamal.decryptReencryption(
@@ -218,6 +218,6 @@ describe('hgamal', () => {
     );
     assert.ok(m.isOk());
     const p = m._unsafeUnwrap();
-    assert.strictEqual(data.plain, hexlify(p));
+    assert.strictEqual(data.plain, utils.hexlify(p));
   });
 });

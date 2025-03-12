@@ -1,11 +1,13 @@
 import assert from 'assert';
-import { BigNumber } from 'ethers';
-import { WasmCurve, WasmField1 } from 'ffjavascript';
+import { BigNumber, utils } from '../src/ethers-compat';
+import { buildBn128, WasmCurve, WasmField1 } from 'ffjavascript';
 import { ethers } from 'hardhat';
 /* eslint-disable-next-line camelcase */
 import { Playground__factory } from '../typechain';
 import { init, Bn254Suite } from '../src/bn254';
 import { EVMG1Point } from '../src/algebra';
+import { expect } from 'chai';
+import { convertBigIntToBigNumber, convertBigNumberToBigInt } from './test-utils';
 
 describe('use ident', async () => {
   let group: WasmCurve;
@@ -14,8 +16,9 @@ describe('use ident', async () => {
 
   before(async () => {
     suite = await init();
-    group = globalThis.ffCurve.G1;
-    field = globalThis.ffCurve.Fr;
+    const bn128 = await buildBn128();
+    group = bn128.G1;
+    field = bn128.Fr;
   });
 
   // it("show bases", () => {
@@ -62,19 +65,19 @@ describe('use ident', async () => {
 
   function pointToEvm(p: Uint8Array): EVMG1Point {
     const obj = group.toObject(group.toAffine(p));
-    return { x: BigNumber.from(obj[0]), y: BigNumber.from(obj[1]) };
+    return { x: BigNumber.from(obj[0].toString()), y: BigNumber.from(obj[1].toString()) };
   }
 
   function evmToPoint(e: EVMG1Point): Uint8Array {
-    return group.fromObject([e.x.toBigInt(), e.y.toBigInt()]);
+    return group.fromObject([BigInt(e.x.toString()), BigInt(e.y.toString())]);
   }
 
   function scalarToEvm(s: WasmField1): BigNumber {
-    return BigNumber.from(field.toObject(s));
+    return BigNumber.from(field.toObject(s).toString());
   }
 
   function evmToScalar(e: BigNumber): WasmField1 {
-    return field.fromObject(e.toBigInt());
+    return field.fromObject(BigInt(e.toString()));
   }
 
   // it("Compatibility with rust code", () => {
@@ -144,28 +147,64 @@ describe('use ident', async () => {
     const testContract = await new Playground__factory(owner).deploy();
     const f = field.random();
     const g = group.timesScalar(group.g, f);
-    let evmRes = await testContract.identity(pointToEvm(g));
-    let decoded = evmToPoint(evmRes);
+    
+    // Convert to bigint for contract call
+    const evmG = pointToEvm(g);
+    const contractG = {
+      x: evmG.x.toBigInt(),
+      y: evmG.y.toBigInt()
+    };
+    const evmRes = await testContract.identity(contractG);
+    
+    // Convert result back to BigNumber
+    const evmResCompat = {
+      x: BigNumber.from(evmRes.x.toString()),
+      y: BigNumber.from(evmRes.y.toString())
+    };
+    const decoded = evmToPoint(evmResCompat);
     assert.ok(group.eq(decoded, g), 'identity check fail');
 
     // scalar mult
     const gf = group.timesFr(group.g, f);
-    evmRes = await testContract.scalarMul(pointToEvm(group.g), scalarToEvm(f));
-    decoded = evmToPoint(evmRes);
-    assert.ok(group.eq(decoded, gf), 'scalar mult failing');
+    const evmF = scalarToEvm(f);
+    const contractGBase = {
+      x: pointToEvm(group.g).x.toBigInt(),
+      y: pointToEvm(group.g).y.toBigInt()
+    };
+    const contractF = evmF.toBigInt();
+    const evmMulRes = await testContract.scalarMul(contractGBase, contractF);
+    
+    // Convert result back to BigNumber
+    const evmMulResCompat = {
+      x: BigNumber.from(evmMulRes.x.toString()),
+      y: BigNumber.from(evmMulRes.y.toString())
+    };
+    const decodedMul = evmToPoint(evmMulResCompat);
+    assert.ok(group.eq(decodedMul, gf), 'scalar mult failing');
 
     // point addition
     const sum = group.add(decoded, decoded);
-    evmRes = await testContract.pointAdd(
-      pointToEvm(decoded),
-      pointToEvm(decoded),
-    );
-    decoded = evmToPoint(evmRes);
-    assert.ok(group.eq(decoded, sum), 'point addition fail');
+    const contractDecoded = {
+      x: pointToEvm(decoded).x.toBigInt(),
+      y: pointToEvm(decoded).y.toBigInt()
+    };
+    const evmAddRes = await testContract.pointAdd(contractDecoded, contractDecoded);
+    
+    // Convert result back to BigNumber
+    const evmAddResCompat = {
+      x: BigNumber.from(evmAddRes.x.toString()),
+      y: BigNumber.from(evmAddRes.y.toString())
+    };
+    const decodedAdd = evmToPoint(evmAddResCompat);
+    assert.ok(group.eq(decodedAdd, sum), 'point addition fail');
 
     // id scalar
-    const evmScalarRes = await testContract.idScalar(scalarToEvm(f));
-    const scalar = evmToScalar(evmScalarRes);
+    const contractScalar = scalarToEvm(f).toBigInt();
+    const evmScalarRes = await testContract.idScalar(contractScalar);
+    
+    // Convert result back to BigNumber
+    const evmScalarResCompat = BigNumber.from(evmScalarRes.toString());
+    const scalar = evmToScalar(evmScalarResCompat);
     assert.ok(field.eq(f, scalar));
   });
 
@@ -173,22 +212,89 @@ describe('use ident', async () => {
     const [owner] = await ethers.getSigners();
     const testContract = await new Playground__factory(owner).deploy();
     const p1 = suite.point().random();
-    let evmRes = await testContract.identity(p1.toEvm());
-    assert.ok(
-      suite.point().fromEvm(evmRes)._unsafeUnwrap(),
-      'suite identity fail',
-    );
+    
+    // Convert to bigint for contract call
+    const p1Evm = p1.toEvm();
+    const contractP1 = {
+      x: p1Evm.x.toBigInt(),
+      y: p1Evm.y.toBigInt()
+    };
+    const evmRes = await testContract.identity(contractP1);
+    
+    // Convert result back to BigNumber
+    const evmResCompat = {
+      x: BigNumber.from(evmRes.x.toString()),
+      y: BigNumber.from(evmRes.y.toString())
+    };
+    const decoded = suite.point().fromEvm(evmResCompat)._unsafeUnwrap();
+    assert.ok(p1.equal(decoded), 'suite identity fail');
 
     const p2 = suite.point().random();
     const p3 = suite.point().set(p2).add(p1);
-    evmRes = await testContract.pointAdd(p1.toEvm(), p2.toEvm());
-    let decoded = suite.point().fromEvm(evmRes)._unsafeUnwrap();
-    assert.ok(p3.equal(decoded), "suite point addition doesn't work");
+    
+    // Convert to bigint for contract call
+    const p1EvmForAdd = p1.toEvm();
+    const p2Evm = p2.toEvm();
+    const contractP1ForAdd = {
+      x: p1EvmForAdd.x.toBigInt(),
+      y: p1EvmForAdd.y.toBigInt()
+    };
+    const contractP2 = {
+      x: p2Evm.x.toBigInt(),
+      y: p2Evm.y.toBigInt()
+    };
+    const evmAddRes = await testContract.pointAdd(contractP1ForAdd, contractP2);
+    
+    // Convert result back to BigNumber
+    const evmAddResCompat = {
+      x: BigNumber.from(evmAddRes.x.toString()),
+      y: BigNumber.from(evmAddRes.y.toString())
+    };
+    const decodedAdd = suite.point().fromEvm(evmAddResCompat)._unsafeUnwrap();
+    assert.ok(p3.equal(decodedAdd), "suite point addition doesn't work");
 
     const f = suite.scalar().random();
     const p4 = suite.point().set(p1).mul(f);
-    evmRes = await testContract.scalarMul(p1.toEvm(), f.toEvm());
-    decoded = suite.point().fromEvm(evmRes)._unsafeUnwrap();
-    assert.ok(p4.equal(decoded), 'scalar mul not working');
+    
+    // Convert to bigint for contract call
+    const p1EvmForMul = p1.toEvm();
+    const fEvm = f.toEvm();
+    const contractP1ForMul = {
+      x: p1EvmForMul.x.toBigInt(),
+      y: p1EvmForMul.y.toBigInt()
+    };
+    const contractF = fEvm.toBigInt();
+    const evmMulRes = await testContract.scalarMul(contractP1ForMul, contractF);
+    
+    // Convert result back to BigNumber
+    const evmMulResCompat = {
+      x: BigNumber.from(evmMulRes.x.toString()),
+      y: BigNumber.from(evmMulRes.y.toString())
+    };
+    const decodedMul = suite.point().fromEvm(evmMulResCompat)._unsafeUnwrap();
+    assert.ok(p4.equal(decodedMul), 'scalar mul not working');
+  });
+
+  it('should test the contract', async () => {
+    const [owner] = await ethers.getSigners();
+    const test = await new Playground__factory(owner).deploy();
+    const suite = await init();
+    
+    const p1 = suite.point().random();
+    const p1Evm = p1.toEvm();
+    
+    // Convert to bigint for contract call
+    const contractP1 = {
+      x: p1Evm.x.toBigInt(),
+      y: p1Evm.y.toBigInt()
+    };
+    const p1Res = await test.identity(contractP1);
+    
+    // Convert result back to BigNumber
+    const p1ResCompat = {
+      x: BigNumber.from(p1Res.x.toString()),
+      y: BigNumber.from(p1Res.y.toString())
+    };
+    assert.deepStrictEqual(p1ResCompat, p1Evm);
   });
 });

@@ -1,4 +1,5 @@
-import { BigNumber, ethers, utils } from 'ethers';
+import { BigNumber, utils } from './ethers-compat';
+import { ethers } from 'ethers';
 
 import { init as initBn254 } from './bn254';
 import { Point, Scalar, Curve, EVMG1Point } from './algebra';
@@ -18,8 +19,8 @@ import {
   ThresholdNetwork__factory,
 } from '../typechain';
 
-export { HGamalEVMCipher, HGamalEVMReencryptedCipher };
-export { EVMG1Point } from './algebra';
+export type { HGamalEVMCipher, HGamalEVMReencryptedCipher };
+export type { EVMG1Point } from './algebra';
 import { NETWORK_CONFIG, NetworkEnvironment } from './config';
 import { GAS_UNIT_BUFFER, MINIMUM_BASE_FEE } from './constants';
 
@@ -92,14 +93,16 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       throw new Error('Medusa: Signer must have an attached provider');
     }
 
-    const medusaContract = EncryptionOracle__factory.connect(
+    const medusaContract = ThresholdNetwork__factory.connect(
       medusaAddress,
       signer,
     );
+    
+    // Access the suite property from the contract
+    const suiteValue = await medusaContract.getFunction('suite')();
 
-    const suite = await medusaContract.suite();
-
-    switch (suite as SuiteType) {
+    // Convert bigint to number for SuiteType enum
+    switch (Number(suiteValue)) {
       case SuiteType.BN254_KEYG1_HGAMAL: {
         const medu = new Medusa(
           await initBn254(),
@@ -111,7 +114,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
         return medu;
       }
       default:
-        throw new Error(`unknown suite type: ${suite}`);
+        throw new Error(`Unsupported suite type: ${suiteValue}`);
     }
   }
 
@@ -204,8 +207,13 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
    * @param {EVMG1Point} pubkey to decode
    * @returns {P} A Medusa Public Key
    */
-  decodePublicKey(pubkey: EVMG1Point): P {
-    return this.suite.point().fromEvm(pubkey)._unsafeUnwrap();
+  decodePublicKey(pubkey: any): P {
+    // Convert bigint to BigNumber for compatibility
+    const compatPubkey: EVMG1Point = {
+      x: BigNumber.from(pubkey.x.toString()),
+      y: BigNumber.from(pubkey.y.toString())
+    };
+    return this.suite.point().fromEvm(compatPubkey)._unsafeUnwrap();
   }
 
   /**
@@ -275,7 +283,7 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
   }
 
   /**
-   * The total amount that must be paid for a call to oracle.submitCiphertext().
+   * The fee that must be paid to submit a ciphertext to the Medusa network.
    *
    * @async
    * @returns {Promise<BigNumber>} A promise that resolves to the submission fee as a BigNumber.
@@ -285,7 +293,8 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       this.medusaAddress,
       this.signer.provider!,
     );
-    return await oracle.submissionFee();
+    const fee = await oracle.submissionFee();
+    return BigNumber.from(fee.toString());
   }
 
   /**
@@ -302,9 +311,10 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       this.signer.provider!,
     );
     const reencryptionFee = await oracle.reencryptionFee();
+    const bnReencryptionFee = BigNumber.from(reencryptionFee.toString());
     return (
-      await this.estimateCallbackGas(contractAddress, reencryptionFee)
-    ).add(reencryptionFee);
+      await this.estimateCallbackGas(contractAddress, bnReencryptionFee)
+    ).add(bnReencryptionFee);
   }
 
   /**
@@ -322,22 +332,29 @@ export class Medusa<S extends SecretKey, P extends PublicKey<S>> {
       this.medusaAddress,
       this.signer.provider!,
     );
-    const gasUnits = await oracle.estimateGas.estimateDeliverReencryption(
-      BigNumber.from(0),
+    
+    // In ethers v6, we need to use the contract instance directly
+    const gasUnitsEstimate = await oracle.estimateDeliverReencryption.estimateGas(
+      BigNumber.from(0).toBigInt(),
       {
-        random: { x: BigNumber.from(1), y: BigNumber.from(1) },
+        random: { x: BigNumber.from(1).toBigInt(), y: BigNumber.from(1).toBigInt() },
       },
       contractAddress,
       {
         from: NETWORK_CONFIG[this.network].relayerAddr,
-        value: reencryptionFee,
-      },
+        value: reencryptionFee.toBigInt(),
+      }
     );
+    
+    const gasUnits = BigNumber.from(gasUnitsEstimate.toString());
 
-    const feeData = await this.signer.getFeeData();
-    let gasPrice = feeData.maxFeePerGas!;
+    // In ethers v6, getFeeData is on the provider, not the signer
+    const feeData = await this.signer.provider!.getFeeData();
+    let gasPrice = BigNumber.from(feeData.maxFeePerGas?.toString() || '0');
+    
     // If the base fee < 1000 wei, we are probably in localhost so add a minimum base fee to correct this.
-    if (feeData.lastBaseFeePerGas?.lt(BigNumber.from(1000))) {
+    const baseFee = feeData.maxFeePerGas || BigNumber.from(0).toBigInt();
+    if (BigNumber.from(baseFee.toString()).lt(BigNumber.from(1000))) {
       gasPrice = gasPrice.add(MINIMUM_BASE_FEE);
     }
 

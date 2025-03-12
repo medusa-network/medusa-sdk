@@ -1,6 +1,6 @@
 import { buildBn128, WasmCurve, WasmField1 } from 'ffjavascript';
 import { ok, err } from 'neverthrow';
-import { BigNumber } from 'ethers';
+import { BigNumber } from './ethers-compat';
 
 import { Curve, Atom, Scalar, Point, EVMG1Point } from './algebra';
 import {

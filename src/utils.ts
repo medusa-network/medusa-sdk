@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { BigNumber } from 'ethers';
-import { arrayify, hexlify, hexZeroPad, randomBytes } from 'ethers/lib/utils';
+import { BigNumber, utils } from './ethers-compat';
 import { ChaCha } from 'ffjavascript';
 import crypto from 'crypto';
 
 export function randHex(n: number): string {
-  return hexlify(randomBytes(n));
+  return utils.hexlify(utils.randomBytes(n));
 }
 
 export function onlyZero(b: Uint8Array): boolean {
@@ -17,24 +16,31 @@ export function bnToArray(
   reverse = false,
   padToLength = 0,
 ): Uint8Array {
-  const arr = arrayify(
-    padToLength > 0
-      ? hexZeroPad(big.toHexString(), padToLength)
-      : big.toHexString(),
-  );
-
-  if (reverse) {
-    return arr.reverse();
+  let hex = big.toHexString();
+  // remove 0x
+  hex = hex.substring(2);
+  // pad to even length
+  if (hex.length % 2 === 1) {
+    hex = '0' + hex;
   }
-
-  return arr;
+  // pad to required length
+  const length = padToLength * 2; // 2 hex digits = 1 byte
+  if (length > 0 && hex.length < length) {
+    hex = hex.padStart(length, '0');
+  }
+  let res = utils.arrayify('0x' + hex);
+  if (reverse) {
+    res = res.slice().reverse();
+  }
+  return res;
 }
 
 export function arrayToBn(a: Uint8Array, reverse = false): BigNumber {
+  let arr = a;
   if (reverse) {
-    return BigNumber.from(a.reverse());
+    arr = arr.slice().reverse();
   }
-  return BigNumber.from(a);
+  return BigNumber.from(utils.hexlify(arr));
 }
 
 // taken from https://github.com/iden3/ffjavascript/blob/d5c1243eef385b69ce17084d7c9bede648c84bdb/src/random.js#L33

@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber } from './ethers-compat';
 import { ok } from 'neverthrow';
 import { Point, Scalar, Curve } from './algebra';
 import { EncodingRes, EVMEncoding } from './encoding';

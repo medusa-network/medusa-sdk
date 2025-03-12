@@ -17,7 +17,7 @@ import {
 import { secretbox, randomBytes } from 'tweetnacl';
 import { DleqSuite } from './dleq';
 import { ShaTranscript } from './transcript';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, utils } from './ethers-compat';
 
 const newNonce = () => randomBytes(secretbox.nonceLength);
 const generateKey = () => randomBytes(secretbox.keyLength);
@@ -30,12 +30,12 @@ export class Label implements ABIEncoder, EVMEncoding<BigNumber> {
     platformAddress: string,
     encryptor: string,
   ) {
-    if (!ethers.utils.isAddress(platformAddress)) {
+    if (!utils.isAddress(platformAddress)) {
       throw new Error(
         `invalid platform address specified for label: ${platformAddress}`,
       );
     }
-    if (!ethers.utils.isAddress(encryptor)) {
+    if (!utils.isAddress(encryptor)) {
       throw new Error(
         `invalid encryptor address specified for label: ${encryptor}`,
       );

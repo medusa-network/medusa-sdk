@@ -1,4 +1,5 @@
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, utils } from './ethers-compat';
+import { ethers } from 'ethers';
 import { Scalar } from './algebra';
 import { ABIEncoder, ABIEncodedLabels, ABIEncodedValues } from './encoding';
 
@@ -51,7 +52,7 @@ export class ShaTranscript implements EVMTranscript {
   }
 
   digest(): string {
-    return ethers.utils.soliditySha256(this.types, this.elements);
+    return utils.soliditySha256(this.types, this.elements);
   }
 
   /// challenge from an array directly

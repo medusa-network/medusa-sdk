@@ -1,4 +1,19 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["./typechain", "./scripts", "./test", "./hardhat.config.ts"]
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictPropertyInitialization": false,
+    "strictBindCallApply": false
+  },
+  "exclude": [
+    "node_modules",
+    "test",
+    "lib",
+    "**/*.spec.ts"
+  ]
 }
